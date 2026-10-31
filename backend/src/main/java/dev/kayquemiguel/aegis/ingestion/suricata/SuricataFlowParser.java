@@ -86,13 +86,14 @@ public final class SuricataFlowParser {
     }
 
 
+
     private static String requiredText(
             JsonNode root,
             String field
     ) {
         JsonNode value = root.get(field);
 
-        if (value == null || !value.isTextual()
+        if (value == null || !value.isString()
                 || value.asString().isBlank()) {
             throw new IllegalArgumentException(
                     "Missing or invalid field: " + field
@@ -101,6 +102,7 @@ public final class SuricataFlowParser {
 
         return value.asString();
     }
+
 
 
     private static Integer optionalPort(
