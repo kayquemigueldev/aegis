@@ -1,3 +1,4 @@
+
 package dev.kayquemiguel.aegis.ingestion.suricata;
 
 import dev.kayquemiguel.aegis.domain.event.NetworkEvent;
@@ -38,6 +39,7 @@ class SuricataFlowParserTest {
         assertEquals("192.0.2.20", event.destinationIp());
         assertEquals(443, event.destinationPort());
         assertEquals(NetworkProtocol.TCP, event.protocol());
+        assertEquals("12345", event.sourceFlowId());
         assertEquals(
                 Instant.parse("2026-10-31T10:00:00.123456Z"),
                 event.occurredAt()
@@ -94,6 +96,78 @@ class SuricataFlowParserTest {
 
         assertThrows(IllegalArgumentException.class, () ->
                 parser.parse(json, ingestedAt)
+        );
+    }
+
+    private String flowWithId(String flowId) {
+        return """
+                {
+                  "timestamp": "2026-10-31T10:00:00Z",
+                  "event_type": "flow",
+                  "src_ip": "192.0.2.10",
+                  "dest_ip": "192.0.2.20",
+                  "dest_port": 443,
+                  "proto": "TCP",
+                  "flow_id": %s
+                }
+                """.formatted(flowId);
+    }
+
+    @Test
+    void shouldAcceptMissingFlowId() {
+        String json = """
+                {
+                  "timestamp": "2026-10-31T10:00:00Z",
+                  "event_type": "flow",
+                  "src_ip": "192.0.2.10",
+                  "dest_ip": "192.0.2.20",
+                  "proto": "TCP"
+                }
+                """;
+
+        NetworkEvent event = parser.parse(json, ingestedAt)
+                .orElseThrow();
+
+        assertNull(event.sourceFlowId());
+    }
+
+    @Test
+    void shouldPreserveUnsigned64BitFlowId() {
+        NetworkEvent event = parser.parse(
+                flowWithId("18446744073709551615"),
+                ingestedAt
+        ).orElseThrow();
+
+        assertEquals(
+                "18446744073709551615",
+                event.sourceFlowId()
+        );
+    }
+
+    @Test
+    void shouldRejectNegativeFlowId() {
+        assertThrows(IllegalArgumentException.class, () ->
+                parser.parse(flowWithId("-1"), ingestedAt)
+        );
+    }
+
+    @Test
+    void shouldRejectFlowIdLargerThanUnsigned64Bit() {
+        assertThrows(IllegalArgumentException.class, () ->
+                parser.parse(
+                        flowWithId("18446744073709551616"),
+                        ingestedAt
+                )
+        );
+    }
+
+    @Test
+    void shouldRejectTextualFlowId() {
+        assertThrows(IllegalArgumentException.class, () ->
+                parser.parse(
+                        flowWithId("\"invalid\""),
+                        ingestedAt
+                )
         );
     }
 }

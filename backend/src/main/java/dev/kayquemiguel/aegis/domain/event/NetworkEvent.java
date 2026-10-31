@@ -1,3 +1,4 @@
+
 package dev.kayquemiguel.aegis.domain.event;
 
 import java.net.Inet6Address;
@@ -16,8 +17,30 @@ public record NetworkEvent(
         Integer sourcePort,
         Integer destinationPort,
         NetworkProtocol protocol,
-        String sourceSystem
+        String sourceSystem,
+        String sourceFlowId
 ) {
+
+    // Compatibilidade com os eventos criados antes
+    // da introducao de sourceFlowId.
+    public NetworkEvent(
+            UUID id,
+            Instant occurredAt,
+            Instant ingestedAt,
+            String sourceIp,
+            String destinationIp,
+            Integer sourcePort,
+            Integer destinationPort,
+            NetworkProtocol protocol,
+            String sourceSystem
+    ) {
+        this(
+                id, occurredAt, ingestedAt,
+                sourceIp, destinationIp,
+                sourcePort, destinationPort,
+                protocol, sourceSystem, null
+        );
+    }
 
     public NetworkEvent {
         Objects.requireNonNull(id, "id is required");
@@ -47,6 +70,15 @@ public record NetworkEvent(
         }
 
         sourceSystem = sourceSystem.trim();
+
+        if (sourceFlowId != null) {
+            if (sourceFlowId.isBlank()) {
+                throw new IllegalArgumentException(
+                        "sourceFlowId must not be blank"
+                );
+            }
+            sourceFlowId = sourceFlowId.trim();
+        }
     }
 
     private static void validatePort(Integer port, String field) {
@@ -85,6 +117,7 @@ public record NetworkEvent(
                 }
 
                 return address.getHostAddress();
+
             } catch (UnknownHostException ex) {
                 throw new IllegalArgumentException(
                         field + " must be a valid IPv6 address", ex
