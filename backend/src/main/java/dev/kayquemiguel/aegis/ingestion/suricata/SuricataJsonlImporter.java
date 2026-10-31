@@ -1,3 +1,4 @@
+
 package dev.kayquemiguel.aegis.ingestion.suricata;
 
 import dev.kayquemiguel.aegis.domain.event.NetworkEvent;
@@ -17,7 +18,8 @@ import java.util.function.Consumer;
 
 public final class SuricataJsonlImporter {
 
-    private static final int MAX_REPORTED_ERRORS = 100;
+    public static final int MAX_LINE_LENGTH = 65_536;
+    public static final int MAX_REPORTED_ERRORS = 100;
 
     private final SuricataFlowParser parser;
     private final Clock clock;
@@ -51,39 +53,48 @@ public final class SuricataJsonlImporter {
                 new ArrayList<>();
 
         try (BufferedReader reader = Files.newBufferedReader(
-                path, StandardCharsets.UTF_8)) {
+                path,
+                StandardCharsets.UTF_8
+        )) {
 
-            String line;
+            LineResult line;
 
-            while ((line = reader.readLine()) != null) {
+            while ((line = readLimitedLine(reader)) != null) {
                 total++;
+
+                if (line.tooLong()) {
+                    rejected++;
+                    addError(
+                            errors,
+                            total,
+                            "Line exceeds maximum length of "
+                                    + MAX_LINE_LENGTH + " characters"
+                    );
+                    continue;
+                }
 
                 Instant ingestedAt = clock.instant();
                 Optional<NetworkEvent> event;
 
                 try {
-                    event = parser.parse(line, ingestedAt);
+                    event = parser.parse(
+                            line.content(),
+                            ingestedAt
+                    );
                 } catch (IllegalArgumentException exception) {
                     rejected++;
-
-                    if (errors.size() < MAX_REPORTED_ERRORS) {
-                        String reason = exception.getMessage();
-
-                        errors.add(
-                                new ImportReport.RejectedLine(
-                                        total,
-                                        reason == null
-                                                ? "Invalid event"
-                                                : reason
-                                )
-                        );
-                    }
+                    addError(
+                            errors,
+                            total,
+                            exception.getMessage()
+                    );
                     continue;
                 }
 
                 if (event.isEmpty()) {
                     ignored++;
                 } else {
+                    // Falhas do consumidor nao sao erros de JSON.
                     consumer.accept(event.get());
                     accepted++;
                 }
@@ -97,5 +108,70 @@ public final class SuricataJsonlImporter {
                 rejected,
                 errors
         );
+    }
+
+    private static void addError(
+            List<ImportReport.RejectedLine> errors,
+            long lineNumber,
+            String reason
+    ) {
+        if (errors.size() >= MAX_REPORTED_ERRORS) {
+            return;
+        }
+
+        errors.add(
+                new ImportReport.RejectedLine(
+                        lineNumber,
+                        reason == null ? "Invalid event" : reason
+                )
+        );
+    }
+
+    private static LineResult readLimitedLine(
+            BufferedReader reader
+    ) throws IOException {
+
+        StringBuilder content = new StringBuilder();
+        boolean tooLong = false;
+        boolean hasData = false;
+
+        int next;
+
+        while ((next = reader.read()) != -1) {
+            hasData = true;
+
+            if (next == '\n') {
+                break;
+            }
+
+            if (content.length() < MAX_LINE_LENGTH) {
+                content.append((char) next);
+            } else {
+                tooLong = true;
+            }
+        }
+
+        if (!hasData) {
+            return null;
+        }
+
+        if (tooLong) {
+            return new LineResult("", true);
+        }
+
+        // Suporte a terminadores CRLF.
+        int length = content.length();
+
+        if (length > 0 && content.charAt(length - 1) == '\r') {
+            content.setLength(length - 1);
+        }
+
+        return new LineResult(content.toString(), false);
+    }
+
+    private record LineResult(
+            String content,
+            boolean tooLong
+    ) {
     }
 }

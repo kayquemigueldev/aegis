@@ -1,3 +1,4 @@
+
 package dev.kayquemiguel.aegis.ingestion.suricata;
 
 import dev.kayquemiguel.aegis.domain.event.NetworkEvent;
@@ -127,5 +128,110 @@ class SuricataJsonlImporterTest {
         assertThrows(IOException.class, () ->
                 importer.importFile(file, event -> {})
         );
+    }
+
+    @Test
+    void shouldRejectOversizedLineAndContinue()
+            throws IOException {
+
+        Path file = tempDir.resolve("oversized.jsonl");
+
+        String oversized = "x".repeat(
+                SuricataJsonlImporter.MAX_LINE_LENGTH + 1
+        );
+
+        Files.writeString(
+                file,
+                oversized + "\n" + flow(443) + "\n"
+        );
+
+        List<NetworkEvent> events = new ArrayList<>();
+
+        ImportReport report = importer.importFile(
+                file,
+                events::add
+        );
+
+        assertEquals(2, report.totalLines());
+        assertEquals(1, report.rejected());
+        assertEquals(1, report.accepted());
+        assertEquals(0, report.ignored());
+        assertEquals(1, report.errors().get(0).lineNumber());
+        assertEquals(1, events.size());
+    }
+
+    @Test
+    void shouldProcessValidLineAfterMultipleOversizedLines()
+            throws IOException {
+
+        Path file = tempDir.resolve("multiple-large.jsonl");
+
+        String oversized = "x".repeat(
+                SuricataJsonlImporter.MAX_LINE_LENGTH + 100
+        );
+
+        Files.writeString(
+                file,
+                oversized + "\n"
+                        + oversized + "\n"
+                        + flow(80) + "\n"
+        );
+
+        ImportReport report = importer.importFile(
+                file,
+                event -> {}
+        );
+
+        assertEquals(3, report.totalLines());
+        assertEquals(2, report.rejected());
+        assertEquals(1, report.accepted());
+        assertEquals(2, report.errors().size());
+    }
+
+    @Test
+    void shouldLimitStoredErrors() throws IOException {
+        Path file = tempDir.resolve("many-errors.jsonl");
+
+        StringBuilder input = new StringBuilder();
+
+        for (int i = 0; i < 150; i++) {
+            input.append("{invalid}\n");
+        }
+
+        Files.writeString(file, input.toString());
+
+        ImportReport report = importer.importFile(
+                file,
+                event -> fail("No event expected")
+        );
+
+        assertEquals(150, report.totalLines());
+        assertEquals(150, report.rejected());
+        assertEquals(
+                SuricataJsonlImporter.MAX_REPORTED_ERRORS,
+                report.errors().size()
+        );
+    }
+
+    @Test
+    void shouldSupportCrLfLineEndings()
+            throws IOException {
+
+        Path file = tempDir.resolve("windows.jsonl");
+
+        Files.writeString(
+                file,
+                flow(80) + "\r\n"
+                        + flow(443) + "\r\n"
+        );
+
+        ImportReport report = importer.importFile(
+                file,
+                event -> {}
+        );
+
+        assertEquals(2, report.totalLines());
+        assertEquals(2, report.accepted());
+        assertEquals(0, report.rejected());
     }
 }
