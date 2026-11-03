@@ -34,12 +34,9 @@ public final class PossiblePortScanDetector {
     private final int maxPairs;
     private final int maxObservationsPerPair;
 
-    // Access-order: permite remover o par menos
-    // recentemente utilizado quando atingimos o limite.
     private final Map<PairKey, PairState> states =
             new LinkedHashMap<>(16, 0.75f, true);
 
-    // Marca temporal monotônica de ingestão.
     private Instant ingestionWatermark;
 
     public PossiblePortScanDetector(
@@ -64,8 +61,7 @@ public final class PossiblePortScanDetector {
     ) {
         Objects.requireNonNull(window, "window is required");
         Objects.requireNonNull(
-                idleTimeout,
-                "idleTimeout is required"
+                idleTimeout, "idleTimeout is required"
         );
 
         if (window.isZero() || window.isNegative()) {
@@ -80,8 +76,7 @@ public final class PossiblePortScanDetector {
             );
         }
 
-        if (idleTimeout.isZero()
-                || idleTimeout.isNegative()) {
+        if (idleTimeout.isZero() || idleTimeout.isNegative()) {
             throw new IllegalArgumentException(
                     "Idle timeout must be positive"
             );
@@ -103,8 +98,7 @@ public final class PossiblePortScanDetector {
         this.threshold = threshold;
         this.idleTimeout = idleTimeout;
         this.maxPairs = maxPairs;
-        this.maxObservationsPerPair =
-                maxObservationsPerPair;
+        this.maxObservationsPerPair = maxObservationsPerPair;
     }
 
     public synchronized Optional<DetectionAlert> evaluate(
@@ -119,12 +113,8 @@ public final class PossiblePortScanDetector {
             ingestionWatermark = ingestedAt;
         }
 
-        // Limpeza oportunista a cada evento recebido.
-        // Nao depende de uma thread ou scheduler.
         expireInactivePairs();
 
-        // Descarta registros excessivamente atrasados
-        // em relacao ao maior instante de ingestao visto.
         Instant minimumIngestionTime =
                 ingestionWatermark.minus(idleTimeout);
 
@@ -138,7 +128,9 @@ public final class PossiblePortScanDetector {
             return Optional.empty();
         }
 
+        // Isolamento por sensor + origem + destino.
         PairKey key = new PairKey(
+                event.sensorId(),
                 event.sourceIp(),
                 event.destinationIp()
         );
@@ -147,15 +139,14 @@ public final class PossiblePortScanDetector {
 
         if (state == null) {
             ensurePairCapacity();
-
             state = new PairState();
             states.put(key, state);
         }
 
         Instant occurredAt = event.occurredAt();
 
-        // MVP: eventos fora de ordem por par
-        // ainda sao ignorados.
+        // MVP: eventos fora de ordem por grupo
+        // ainda nao sao processados.
         if (state.latestTimestamp != null
                 && occurredAt.isBefore(state.latestTimestamp)) {
             return Optional.empty();
@@ -209,6 +200,7 @@ public final class PossiblePortScanDetector {
 
         if (previousPortCount < threshold
                 && currentPortCount >= threshold) {
+
             return Optional.of(new DetectionAlert(
                     RULE_ID,
                     event.sourceIp(),
@@ -217,7 +209,8 @@ public final class PossiblePortScanDetector {
                     currentPortCount,
                     threshold,
                     "Multiple distinct TCP destination ports "
-                            + "observed within the detection window"
+                            + "observed within the detection window",
+                    event.sensorId()
             ));
         }
 
@@ -286,7 +279,6 @@ public final class PossiblePortScanDetector {
         return ports.size();
     }
 
-    // Consultas sem mutacao, utilizadas pelos testes.
     synchronized int trackedPairCount() {
         return states.size();
     }
@@ -295,16 +287,35 @@ public final class PossiblePortScanDetector {
             String sourceIp,
             String destinationIp
     ) {
-        PairState state = states.get(
-                new PairKey(sourceIp, destinationIp)
+        return trackedObservationCount(
+                NetworkEvent.LEGACY_SENSOR_ID,
+                sourceIp,
+                destinationIp
         );
+    }
 
-        return state == null
-                ? 0
-                : state.observations.size();
+    synchronized int trackedObservationCount(
+            String sensorId,
+            String sourceIp,
+            String destinationIp
+    ) {
+        // Evita modificar a ordem LRU durante a consulta.
+        for (Map.Entry<PairKey, PairState> entry :
+                states.entrySet()) {
+            PairKey key = entry.getKey();
+
+            if (key.sensorId().equals(sensorId)
+                    && key.sourceIp().equals(sourceIp)
+                    && key.destinationIp().equals(destinationIp)) {
+                return entry.getValue().observations.size();
+            }
+        }
+
+        return 0;
     }
 
     private record PairKey(
+            String sensorId,
             String sourceIp,
             String destinationIp
     ) {

@@ -19,8 +19,11 @@ public record NetworkEvent(
         NetworkProtocol protocol,
         String sourceSystem,
         String sourceFlowId,
-        FlowMetadata flowMetadata
+        FlowMetadata flowMetadata,
+        String sensorId
 ) {
+    public static final String LEGACY_SENSOR_ID =
+            "legacy-default";
 
     public NetworkEvent(
             UUID id,
@@ -33,19 +36,11 @@ public record NetworkEvent(
             NetworkProtocol protocol,
             String sourceSystem
     ) {
-        this(
-                id,
-                occurredAt,
-                ingestedAt,
-                sourceIp,
-                destinationIp,
-                sourcePort,
-                destinationPort,
-                protocol,
-                sourceSystem,
-                null,
-                null
-        );
+        this(id, occurredAt, ingestedAt,
+                sourceIp, destinationIp,
+                sourcePort, destinationPort,
+                protocol, sourceSystem,
+                null, null, LEGACY_SENSOR_ID);
     }
 
     public NetworkEvent(
@@ -60,19 +55,32 @@ public record NetworkEvent(
             String sourceSystem,
             String sourceFlowId
     ) {
-        this(
-                id,
-                occurredAt,
-                ingestedAt,
-                sourceIp,
-                destinationIp,
-                sourcePort,
-                destinationPort,
-                protocol,
-                sourceSystem,
-                sourceFlowId,
-                null
-        );
+        this(id, occurredAt, ingestedAt,
+                sourceIp, destinationIp,
+                sourcePort, destinationPort,
+                protocol, sourceSystem,
+                sourceFlowId, null, LEGACY_SENSOR_ID);
+    }
+
+    public NetworkEvent(
+            UUID id,
+            Instant occurredAt,
+            Instant ingestedAt,
+            String sourceIp,
+            String destinationIp,
+            Integer sourcePort,
+            Integer destinationPort,
+            NetworkProtocol protocol,
+            String sourceSystem,
+            String sourceFlowId,
+            FlowMetadata flowMetadata
+    ) {
+        this(id, occurredAt, ingestedAt,
+                sourceIp, destinationIp,
+                sourcePort, destinationPort,
+                protocol, sourceSystem,
+                sourceFlowId, flowMetadata,
+                LEGACY_SENSOR_ID);
     }
 
     public NetworkEvent {
@@ -87,13 +95,13 @@ public record NetworkEvent(
         validatePort(sourcePort, "sourcePort");
         validatePort(destinationPort, "destinationPort");
 
-        if (protocol == NetworkProtocol.ICMP
-                || protocol == NetworkProtocol.ICMPV6) {
-            if (sourcePort != null || destinationPort != null) {
-                throw new IllegalArgumentException(
-                        "ICMP events must not contain transport ports"
-                );
-            }
+        if ((protocol == NetworkProtocol.ICMP
+                || protocol == NetworkProtocol.ICMPV6)
+                && (sourcePort != null
+                || destinationPort != null)) {
+            throw new IllegalArgumentException(
+                    "ICMP events must not contain transport ports"
+            );
         }
 
         if (sourceSystem == null || sourceSystem.isBlank()) {
@@ -101,7 +109,6 @@ public record NetworkEvent(
                     "sourceSystem is required"
             );
         }
-
         sourceSystem = sourceSystem.trim();
 
         if (sourceFlowId != null) {
@@ -110,8 +117,21 @@ public record NetworkEvent(
                         "sourceFlowId must not be blank"
                 );
             }
-
             sourceFlowId = sourceFlowId.trim();
+        }
+
+        if (sensorId == null || sensorId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "sensorId is required"
+            );
+        }
+
+        sensorId = sensorId.trim();
+
+        if (!sensorId.matches("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")) {
+            throw new IllegalArgumentException(
+                    "sensorId must contain 1-64 safe characters"
+            );
         }
     }
 

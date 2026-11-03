@@ -23,6 +23,25 @@ public final class SuricataFlowParser {
     private final JsonMapper mapper =
             JsonMapper.builder().build();
 
+    private final String sensorId;
+
+    public SuricataFlowParser() {
+        this(NetworkEvent.LEGACY_SENSOR_ID);
+    }
+
+    public SuricataFlowParser(String sensorId) {
+        if (sensorId == null
+                || !sensorId.trim().matches(
+                "[A-Za-z0-9][A-Za-z0-9._-]{0,63}"
+        )) {
+            throw new IllegalArgumentException(
+                    "Invalid sensorId"
+            );
+        }
+
+        this.sensorId = sensorId.trim();
+    }
+
     public Optional<NetworkEvent> parse(
             String raw,
             Instant ingestedAt
@@ -86,7 +105,8 @@ public final class SuricataFlowParser {
                     protocol,
                     "suricata",
                     optionalFlowId(root),
-                    optionalFlowMetadata(root)
+                    optionalFlowMetadata(root),
+                    sensorId
             );
 
             return Optional.of(event);
