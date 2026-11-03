@@ -1,6 +1,7 @@
 
 package dev.kayquemiguel.aegis.ingestion.suricata;
 
+import dev.kayquemiguel.aegis.domain.event.FlowMetadata;
 import dev.kayquemiguel.aegis.domain.event.NetworkEvent;
 import dev.kayquemiguel.aegis.domain.event.NetworkProtocol;
 import tools.jackson.databind.JsonNode;
@@ -19,11 +20,17 @@ public final class SuricataFlowParser {
     private static final BigInteger MAX_UINT64 =
             new BigInteger("18446744073709551615");
 
-    private final JsonMapper mapper = JsonMapper.builder().build();
+    private final JsonMapper mapper =
+            JsonMapper.builder().build();
 
-    public Optional<NetworkEvent> parse(String raw, Instant ingestedAt) {
+    public Optional<NetworkEvent> parse(
+            String raw,
+            Instant ingestedAt
+    ) {
         Objects.requireNonNull(raw, "raw is required");
-        Objects.requireNonNull(ingestedAt, "ingestedAt is required");
+        Objects.requireNonNull(
+                ingestedAt, "ingestedAt is required"
+        );
 
         try {
             JsonNode root = mapper.readTree(raw);
@@ -34,28 +41,36 @@ public final class SuricataFlowParser {
                 );
             }
 
-            String eventType = requiredText(root, "event_type");
+            String eventType =
+                    requiredText(root, "event_type");
 
             if (!"flow".equals(eventType)) {
                 return Optional.empty();
             }
 
-            String timestamp = requiredText(root, "timestamp");
-            String normalizedTimestamp = timestamp.replaceFirst(
-                    "([+-][0-9]{2})([0-9]{2})$", "$1:$2"
-            );
+            String timestamp =
+                    requiredText(root, "timestamp");
+
+            String normalizedTimestamp =
+                    timestamp.replaceFirst(
+                            "([+-][0-9]{2})([0-9]{2})$",
+                            "$1:$2"
+                    );
 
             Instant occurredAt = OffsetDateTime
                     .parse(normalizedTimestamp)
                     .toInstant();
 
-            String protocolValue = requiredText(root, "proto")
-                    .toUpperCase(Locale.ROOT);
+            String protocolValue =
+                    requiredText(root, "proto")
+                            .toUpperCase(Locale.ROOT);
 
             NetworkProtocol protocol;
 
             try {
-                protocol = NetworkProtocol.valueOf(protocolValue);
+                protocol = NetworkProtocol.valueOf(
+                        protocolValue
+                );
             } catch (IllegalArgumentException exception) {
                 protocol = NetworkProtocol.OTHER;
             }
@@ -70,7 +85,8 @@ public final class SuricataFlowParser {
                     optionalPort(root, "dest_port"),
                     protocol,
                     "suricata",
-                    optionalFlowId(root)
+                    optionalFlowId(root),
+                    optionalFlowMetadata(root)
             );
 
             return Optional.of(event);
@@ -85,15 +101,14 @@ public final class SuricataFlowParser {
         }
     }
 
-
-
     private static String requiredText(
             JsonNode root,
             String field
     ) {
         JsonNode value = root.get(field);
 
-        if (value == null || !value.isString()
+        if (value == null
+                || !value.isString()
                 || value.asString().isBlank()) {
             throw new IllegalArgumentException(
                     "Missing or invalid field: " + field
@@ -103,7 +118,24 @@ public final class SuricataFlowParser {
         return value.asString();
     }
 
+    private static String optionalText(
+            JsonNode root,
+            String field
+    ) {
+        JsonNode value = root.get(field);
 
+        if (value == null || value.isNull()) {
+            return null;
+        }
+
+        if (!value.isString()) {
+            throw new IllegalArgumentException(
+                    "Invalid text field: flow." + field
+            );
+        }
+
+        return value.asString();
+    }
 
     private static Integer optionalPort(
             JsonNode root,
@@ -115,7 +147,8 @@ public final class SuricataFlowParser {
             return null;
         }
 
-        if (!value.isIntegralNumber() || !value.canConvertToInt()) {
+        if (!value.isIntegralNumber()
+                || !value.canConvertToInt()) {
             throw new IllegalArgumentException(
                     "Invalid port field: " + field
             );
@@ -154,5 +187,30 @@ public final class SuricataFlowParser {
         }
 
         return decimal;
+    }
+
+    private static FlowMetadata optionalFlowMetadata(
+            JsonNode root
+    ) {
+        JsonNode flow = root.get("flow");
+
+        if (flow == null || flow.isNull()) {
+            return null;
+        }
+
+        if (!flow.isObject()) {
+            throw new IllegalArgumentException(
+                    "flow must be a JSON object"
+            );
+        }
+
+        String state = optionalText(flow, "state");
+        String reason = optionalText(flow, "reason");
+
+        if (state == null && reason == null) {
+            return null;
+        }
+
+        return new FlowMetadata(state, reason);
     }
 }

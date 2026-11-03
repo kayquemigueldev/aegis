@@ -18,11 +18,10 @@ public record NetworkEvent(
         Integer destinationPort,
         NetworkProtocol protocol,
         String sourceSystem,
-        String sourceFlowId
+        String sourceFlowId,
+        FlowMetadata flowMetadata
 ) {
 
-    // Compatibilidade com os eventos criados antes
-    // da introducao de sourceFlowId.
     public NetworkEvent(
             UUID id,
             Instant occurredAt,
@@ -35,10 +34,44 @@ public record NetworkEvent(
             String sourceSystem
     ) {
         this(
-                id, occurredAt, ingestedAt,
-                sourceIp, destinationIp,
-                sourcePort, destinationPort,
-                protocol, sourceSystem, null
+                id,
+                occurredAt,
+                ingestedAt,
+                sourceIp,
+                destinationIp,
+                sourcePort,
+                destinationPort,
+                protocol,
+                sourceSystem,
+                null,
+                null
+        );
+    }
+
+    public NetworkEvent(
+            UUID id,
+            Instant occurredAt,
+            Instant ingestedAt,
+            String sourceIp,
+            String destinationIp,
+            Integer sourcePort,
+            Integer destinationPort,
+            NetworkProtocol protocol,
+            String sourceSystem,
+            String sourceFlowId
+    ) {
+        this(
+                id,
+                occurredAt,
+                ingestedAt,
+                sourceIp,
+                destinationIp,
+                sourcePort,
+                destinationPort,
+                protocol,
+                sourceSystem,
+                sourceFlowId,
+                null
         );
     }
 
@@ -77,11 +110,15 @@ public record NetworkEvent(
                         "sourceFlowId must not be blank"
                 );
             }
+
             sourceFlowId = sourceFlowId.trim();
         }
     }
 
-    private static void validatePort(Integer port, String field) {
+    private static void validatePort(
+            Integer port,
+            String field
+    ) {
         if (port != null && (port < 0 || port > 65535)) {
             throw new IllegalArgumentException(
                     field + " must be between 0 and 65535"
@@ -89,9 +126,14 @@ public record NetworkEvent(
         }
     }
 
-    private static String validateIp(String value, String field) {
+    private static String validateIp(
+            String value,
+            String field
+    ) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(field + " is required");
+            throw new IllegalArgumentException(
+                    field + " is required"
+            );
         }
 
         if (!value.equals(value.trim())) {
@@ -108,7 +150,8 @@ public record NetworkEvent(
                     );
                 }
 
-                InetAddress address = InetAddress.getByName(value);
+                InetAddress address =
+                        InetAddress.getByName(value);
 
                 if (!(address instanceof Inet6Address)) {
                     throw new IllegalArgumentException(
@@ -118,9 +161,10 @@ public record NetworkEvent(
 
                 return address.getHostAddress();
 
-            } catch (UnknownHostException ex) {
+            } catch (UnknownHostException exception) {
                 throw new IllegalArgumentException(
-                        field + " must be a valid IPv6 address", ex
+                        field + " must be a valid IPv6 address",
+                        exception
                 );
             }
         }
@@ -129,7 +173,7 @@ public record NetworkEvent(
 
         if (octets.length != 4) {
             throw new IllegalArgumentException(
-                    field + " must be a valid IP address"
+                    field + " must be a valid IPv4 address"
             );
         }
 
@@ -158,7 +202,8 @@ public record NetworkEvent(
                 );
             }
 
-            if (octet.length() > 1 && octet.charAt(0) == '0') {
+            if (octet.length() > 1
+                    && octet.charAt(0) == '0') {
                 throw new IllegalArgumentException(
                         field + " must not contain leading zeroes"
                 );
