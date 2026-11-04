@@ -69,6 +69,18 @@ public class SuricataImportRunner implements ApplicationRunner {
 
         ImportReport imported = report.importReport();
 
+
+        if (report.alreadyImported()) {
+            log.info("Import skipped: file already processed");
+            log.info("Sensor: {}", report.sensorId());
+            log.info(
+                    "Previously accepted events: {}",
+                    imported.accepted()
+            );
+            return;
+        }
+
+
         log.info("========== AEGIS IMPORT REPORT ==========");
         log.info("Sensor: {}", report.sensorId());
         log.info("Total lines: {}", imported.totalLines());

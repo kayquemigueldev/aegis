@@ -7,11 +7,17 @@ import dev.kayquemiguel.aegis.ingestion.suricata.ImportReport;
 import dev.kayquemiguel.aegis.ingestion.suricata.SuricataFlowParser;
 import dev.kayquemiguel.aegis.ingestion.suricata.SuricataJsonlImporter;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -21,28 +27,57 @@ public class SuricataDetectionPipeline {
     private static final Duration DETECTION_WINDOW =
             Duration.ofSeconds(60);
 
-    // Valor experimental, apenas para esta fase.
     private static final int DETECTION_THRESHOLD = 3;
 
     private final DetectionAlertService alertService;
+    private final ImportRunRepository importRuns;
 
     public SuricataDetectionPipeline(
-            DetectionAlertService alertService
+            DetectionAlertService alertService,
+            ImportRunRepository importRuns
     ) {
         this.alertService = Objects.requireNonNull(
                 alertService, "alertService is required"
         );
+        this.importRuns = Objects.requireNonNull(
+                importRuns, "importRuns is required"
+        );
     }
 
+    @Transactional(rollbackFor = IOException.class)
     public DetectionPipelineReport process(
             Path path,
             String sensorId
     ) throws IOException {
         Objects.requireNonNull(path, "path is required");
 
-        // O construtor valida o identificador do sensor.
         SuricataFlowParser parser =
                 new SuricataFlowParser(sensorId);
+
+        String normalizedSensor = sensorId.trim();
+        String sha256 = calculateSha256(path);
+
+        // Esta operacao e protegida pela restricao UNIQUE
+        // no PostgreSQL e participa da transacao atual.
+        boolean claimed = importRuns.claim(
+                normalizedSensor,
+                sha256
+        );
+
+        if (!claimed) {
+            ImportReport previous =
+                    importRuns.previousReport(
+                            normalizedSensor,
+                            sha256
+                    );
+
+            return new DetectionPipelineReport(
+                    normalizedSensor,
+                    previous,
+                    0,
+                    true
+            );
+        }
 
         SuricataJsonlImporter importer =
                 new SuricataJsonlImporter(
@@ -50,8 +85,7 @@ public class SuricataDetectionPipeline {
                         Clock.systemUTC()
                 );
 
-        // Um detector novo por importacao.
-        // Evita misturar estados entre arquivos.
+        // Mantemos um detector independente por arquivo.
         PossiblePortScanDetector detector =
                 new PossiblePortScanDetector(
                         DETECTION_WINDOW,
@@ -60,7 +94,7 @@ public class SuricataDetectionPipeline {
 
         AtomicLong alertsPersisted = new AtomicLong();
 
-        ImportReport importReport = importer.importFile(
+        ImportReport report = importer.importFile(
                 path,
                 event -> detector.evaluate(event)
                         .ifPresent(alert -> {
@@ -69,10 +103,47 @@ public class SuricataDetectionPipeline {
                         })
         );
 
-        return new DetectionPipelineReport(
-                sensorId.trim(),
-                importReport,
+        importRuns.complete(
+                normalizedSensor,
+                sha256,
+                report,
                 alertsPersisted.get()
         );
+
+        return new DetectionPipelineReport(
+                normalizedSensor,
+                report,
+                alertsPersisted.get(),
+                false
+        );
+    }
+
+    private static String calculateSha256(
+            Path path
+    ) throws IOException {
+        MessageDigest digest;
+
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException(
+                    "SHA-256 is not available",
+                    exception
+            );
+        }
+
+        byte[] buffer = new byte[8192];
+
+        try (InputStream input = Files.newInputStream(path)) {
+            int count;
+
+            while ((count = input.read(buffer)) != -1) {
+                if (count > 0) {
+                    digest.update(buffer, 0, count);
+                }
+            }
+        }
+
+        return HexFormat.of().formatHex(digest.digest());
     }
 }
