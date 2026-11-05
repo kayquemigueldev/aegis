@@ -2,6 +2,7 @@
 package dev.kayquemiguel.aegis.security;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -16,14 +17,21 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 @Configuration
 @ConditionalOnWebApplication(
         type = ConditionalOnWebApplication.Type.SERVLET
 )
 public class ApiSecurityConfig {
+
+    private static final String SENSOR_PATTERN =
+            "[A-Za-z0-9][A-Za-z0-9._-]{0,63}";
 
     @Bean
     SecurityFilterChain apiSecurityFilterChain(
@@ -46,7 +54,10 @@ public class ApiSecurityConfig {
                                         "/api/v1/alerts",
                                         "/api/v1/alerts/**"
                                 )
-                                .hasRole("ANALYST")
+                                .hasAnyRole(
+                                        "ANALYST",
+                                        "ADMIN"
+                                )
                                 .anyRequest()
                                 .denyAll()
                 )
@@ -66,9 +77,11 @@ public class ApiSecurityConfig {
             @Value("${aegis.security.password:}")
             String password,
 
+            @Value("${aegis.security.sensors:}")
+            String sensors,
+
             PasswordEncoder encoder
     ) {
-
         boolean hasUsername = !username.isBlank();
         boolean hasPassword = !password.isBlank();
 
@@ -80,8 +93,6 @@ public class ApiSecurityConfig {
         }
 
         if (!hasUsername) {
-            // Sem configuracao, nao cria usuario
-            // nem permite acesso anonimo.
             return new InMemoryUserDetailsManager();
         }
 
@@ -101,9 +112,38 @@ public class ApiSecurityConfig {
             );
         }
 
-        UserDetails analyst = User.withUsername(username)
+        Set<String> allowedSensors =
+                Arrays.stream(sensors.split(","))
+                        .map(String::trim)
+                        .filter(value -> !value.isEmpty())
+                        .collect(
+                                Collectors.toUnmodifiableSet()
+                        );
+
+        for (String sensorId : allowedSensors) {
+            if (!sensorId.matches(SENSOR_PATTERN)) {
+                throw new IllegalArgumentException(
+                        "Invalid authorized sensor ID"
+                );
+            }
+        }
+
+        List<String> authorities = new ArrayList<>();
+        authorities.add("ROLE_ANALYST");
+
+        for (String sensorId : allowedSensors) {
+            authorities.add(
+                    SensorAccessPolicy.SENSOR_PREFIX
+                            + sensorId
+            );
+        }
+
+        UserDetails analyst = User
+                .withUsername(username)
                 .password(encoder.encode(password))
-                .roles("ANALYST")
+                .authorities(
+                        authorities.toArray(String[]::new)
+                )
                 .build();
 
         return new InMemoryUserDetailsManager(analyst);

@@ -17,7 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(properties = {
         "aegis.security.username=security-test",
-        "aegis.security.password=test-password-123456"
+        "aegis.security.password=test-password-123456",
+        "aegis.security.sensors=sensor-security-demo"
 })
 @AutoConfigureMockMvc
 class ApiSecurityIntegrationTest {

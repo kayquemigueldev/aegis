@@ -2,6 +2,7 @@
 package dev.kayquemiguel.aegis.detection.api;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,7 +31,8 @@ public class DetectionAlertController {
             @RequestParam(required = false) String sensorId,
             @RequestParam(required = false) String ruleId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            Authentication authentication
     ) {
         if (page < 0) {
             throw badRequest("page must be >= 0");
@@ -56,15 +58,20 @@ public class DetectionAlertController {
                 validatedSensor,
                 validatedRule,
                 page,
-                size
+                size,
+                authentication
         );
     }
 
     @GetMapping("/{id}")
     public DetectionAlertResponse findById(
-            @PathVariable UUID id
+            @PathVariable UUID id,
+            Authentication authentication
     ) {
-        return queryService.findById(id)
+        return queryService.findById(
+                        id,
+                        authentication
+                )
                 .orElseThrow(() ->
                         new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,
@@ -82,7 +89,9 @@ public class DetectionAlertController {
         }
 
         if (value.isBlank()) {
-            throw badRequest(field + " must not be blank");
+            throw badRequest(
+                    field + " must not be blank"
+            );
         }
 
         String normalized = value.trim();

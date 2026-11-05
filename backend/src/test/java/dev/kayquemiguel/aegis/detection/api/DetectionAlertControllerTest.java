@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-@WithMockUser(roles = "ANALYST")
+@WithMockUser(roles = "ADMIN")
 class DetectionAlertControllerTest {
 
     @Autowired
