@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -70,6 +71,11 @@ public class ApiSecurityConfig {
     }
 
     @Bean
+    @ConditionalOnProperty(
+            name = "aegis.security.mode",
+            havingValue = "local",
+            matchIfMissing = true
+    )
     UserDetailsService userDetailsService(
             @Value("${aegis.security.username:}")
             String username,
