@@ -51,6 +51,10 @@ public class ApiSecurityConfig {
                 .authorizeHttpRequests(authorize ->
                         authorize
                                 .requestMatchers(
+                                        "/api/v1/admin/**"
+                                )
+                                .hasRole("ADMIN")
+                                .requestMatchers(
                                         HttpMethod.GET,
                                         "/api/v1/alerts",
                                         "/api/v1/alerts/**"
