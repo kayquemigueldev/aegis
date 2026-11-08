@@ -26,13 +26,16 @@ public class AdminUserService {
 
     private final JdbcTemplate jdbc;
     private final PasswordEncoder encoder;
+    private final SecurityAuditService audit;
 
     public AdminUserService(
             JdbcTemplate jdbc,
-            PasswordEncoder encoder
+            PasswordEncoder encoder,
+            SecurityAuditService audit
     ) {
         this.jdbc = jdbc;
         this.encoder = encoder;
+        this.audit = audit;
     }
 
     public record UserView(
@@ -103,6 +106,14 @@ public class AdminUserService {
 
         insertSensors(id, sensors);
 
+        audit.record(
+                "USER_CREATED",
+                id,
+                username,
+                "role=ANALYST; sensor_count="
+                        + sensors.size()
+        );
+
         return new UserView(
                 id,
                 username,
@@ -111,6 +122,7 @@ public class AdminUserService {
                 sensors.stream().sorted().toList()
         );
     }
+
 
     @Transactional
     public UserView replaceSensors(
@@ -131,8 +143,19 @@ public class AdminUserService {
 
         insertSensors(userId, sensors);
 
-        return findUser(userId);
+        UserView updatedUser = findUser(userId);
+
+        audit.record(
+                "USER_SENSORS_UPDATED",
+                userId,
+                updatedUser.username(),
+                "sensor_count=" + sensors.size()
+        );
+
+        return updatedUser;
     }
+
+
 
     @Transactional
     public UserView setAnalystEnabled(
@@ -157,8 +180,18 @@ public class AdminUserService {
             );
         }
 
-        return findUser(userId);
+        UserView updatedUser = findUser(userId);
+
+        audit.record(
+                "USER_STATUS_UPDATED",
+                userId,
+                updatedUser.username(),
+                "enabled=" + enabled
+        );
+
+        return updatedUser;
     }
+
 
     @Transactional
     public void changeOwnPassword(
@@ -188,6 +221,24 @@ public class AdminUserService {
                     "Active administrator required"
             );
         }
+
+        UUID adminId = jdbc.queryForObject(
+                """
+                SELECT id
+                FROM aegis_users
+                WHERE username = ?
+                  AND role = 'ADMIN'
+                """,
+                UUID.class,
+                username
+        );
+
+        audit.record(
+                "ADMIN_PASSWORD_CHANGED",
+                adminId,
+                username,
+                "self-service password change"
+        );
 
         if (!encoder.matches(
                 currentPassword,
