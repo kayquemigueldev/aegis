@@ -1,0 +1,62 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend-tests:
+    name: Java 21 / PostgreSQL 17
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: aegis
+          POSTGRES_USER: aegis
+          POSTGRES_PASSWORD: aegis_ci_test_only
+        ports:
+          - 5434:5432
+        options: >-
+          --health-cmd "pg_isready -U aegis -d aegis"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://127.0.0.1:5434/aegis
+          DB_USERNAME: aegis
+          DB_PASSWORD: aegis_ci_test_only
+          AEGIS_SECURITY_MODE: database
+        run: ./mvnw --batch-mode clean verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-reports
+          path: backend/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 14
