@@ -479,4 +479,197 @@ class SuricataDetectionPipelineTest {
         );
     }
 
+
+    @Test
+    void shouldDetectVerticalScanAtWindowBoundary()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1401", 0),
+                flow(80, "1402", 30),
+                flow(443, "1403", 60)
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(1, report.alertsPersisted());
+
+        List<DetectionAlertEntity> alerts =
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                );
+
+        assertEquals(1, alerts.size());
+        assertEquals("NET-001", alerts.getFirst().getRuleId());
+        assertEquals(3, alerts.getFirst().getObservedCount());
+    }
+
+    @Test
+    void shouldDetectHorizontalScanAtWindowBoundary()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1501", 0),
+                flow(22, "1502", 30)
+                        .replace("192.0.2.20", "192.0.2.21"),
+                flow(22, "1503", 60)
+                        .replace("192.0.2.20", "192.0.2.22")
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(1, report.alertsPersisted());
+
+        List<DetectionAlertEntity> alerts =
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                );
+
+        assertEquals(1, alerts.size());
+        assertEquals("NET-002", alerts.getFirst().getRuleId());
+        assertEquals(3, alerts.getFirst().getObservedCount());
+    }
+
+    @Test
+    void shouldExpireVerticalScanAfterWindow()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1601", 0),
+                flow(80, "1602", 30),
+                flow(443, "1603", 61)
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(0, report.alertsPersisted());
+
+        assertTrue(
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                ).isEmpty()
+        );
+    }
+
+    @Test
+    void shouldExpireHorizontalScanAfterWindow()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1701", 0),
+                flow(22, "1702", 30)
+                        .replace("192.0.2.20", "192.0.2.21"),
+                flow(22, "1703", 61)
+                        .replace("192.0.2.20", "192.0.2.22")
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(0, report.alertsPersisted());
+
+        assertTrue(
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                ).isEmpty()
+        );
+    }
+
+
+    @Test
+    void shouldIgnoreOutOfOrderVerticalScanEvent()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1801", 0),
+                flow(80, "1802", 30),
+                flow(443, "1803", 20),
+                flow(8080, "1804", 50)
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(4, report.importReport().accepted());
+        assertEquals(1, report.alertsPersisted());
+
+        List<DetectionAlertEntity> alerts =
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                );
+
+        assertEquals(1, alerts.size());
+
+        DetectionAlertEntity alert = alerts.getFirst();
+
+        assertEquals("NET-001", alert.getRuleId());
+        assertEquals(3, alert.getObservedCount());
+        assertEquals(BASE.plusSeconds(50),
+                alert.getDetectedAt());
+    }
+
+    @Test
+    void shouldIgnoreOutOfOrderHorizontalScanEvent()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1901", 0),
+                flow(22, "1902", 30)
+                        .replace("192.0.2.20", "192.0.2.21"),
+                flow(22, "1903", 20)
+                        .replace("192.0.2.20", "192.0.2.22"),
+                flow(22, "1904", 50)
+                        .replace("192.0.2.20", "192.0.2.23")
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(4, report.importReport().accepted());
+        assertEquals(1, report.alertsPersisted());
+
+        List<DetectionAlertEntity> alerts =
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                );
+
+        assertEquals(1, alerts.size());
+
+        DetectionAlertEntity alert = alerts.getFirst();
+
+        assertEquals("NET-002", alert.getRuleId());
+        assertEquals(
+                "DISTINCT_DESTINATION_HOSTS",
+                alert.getMetricType()
+        );
+        assertEquals(3, alert.getObservedCount());
+        assertEquals(BASE.plusSeconds(50),
+                alert.getDetectedAt());
+    }
+
 }
