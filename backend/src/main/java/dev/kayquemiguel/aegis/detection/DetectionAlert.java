@@ -14,8 +14,34 @@ public record DetectionAlert(
         int distinctPorts,
         int threshold,
         String description,
-        String sensorId
+        String sensorId,
+        DetectionMetricType metricType
 ) {
+
+
+    // Compatibilidade com os construtores existentes.
+    public DetectionAlert(
+            String ruleId,
+            String sourceIp,
+            String destinationIp,
+            Instant detectedAt,
+            int distinctPorts,
+            int threshold,
+            String description,
+            String sensorId
+    ) {
+        this(
+                ruleId,
+                sourceIp,
+                destinationIp,
+                detectedAt,
+                distinctPorts,
+                threshold,
+                description,
+                sensorId,
+                legacyMetricType(ruleId)
+        );
+    }
 
     public DetectionAlert(
             String ruleId,
@@ -38,6 +64,7 @@ public record DetectionAlert(
         Objects.requireNonNull(destinationIp, "destinationIp is required");
         Objects.requireNonNull(detectedAt, "detectedAt is required");
         Objects.requireNonNull(description, "description is required");
+        Objects.requireNonNull(metricType, "metricType is required");
 
         if (sensorId == null || sensorId.isBlank()
                 || !sensorId.trim().matches(
@@ -57,15 +84,14 @@ public record DetectionAlert(
         }
     }
 
-    public DetectionMetricType metricType() {
-        return switch (ruleId) {
-            case "NET-001" ->
-                    DetectionMetricType.DISTINCT_DESTINATION_PORTS;
-            case "NET-002" ->
-                    DetectionMetricType.DISTINCT_DESTINATION_HOSTS;
-            default ->
-                    DetectionMetricType.DISTINCT_DESTINATION_PORTS;
-        };
+    private static DetectionMetricType legacyMetricType(
+            String ruleId
+    ) {
+        if ("NET-002".equals(ruleId)) {
+            return DetectionMetricType.DISTINCT_DESTINATION_HOSTS;
+        }
+
+        return DetectionMetricType.DISTINCT_DESTINATION_PORTS;
     }
 
     public int observedCount() {

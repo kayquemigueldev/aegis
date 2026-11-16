@@ -277,4 +277,44 @@ class SuricataDetectionPipelineTest {
                 ).isEmpty()
         );
     }
+
+    @Test
+    void shouldDetectHorizontalScanInPipeline()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "901", 0),
+                flow(22, "902", 10)
+                        .replace("192.0.2.20", "192.0.2.21"),
+                flow(22, "903", 20)
+                        .replace("192.0.2.20", "192.0.2.22")
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(1, report.alertsPersisted());
+
+        List<DetectionAlertEntity> alerts =
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                );
+
+        assertEquals(1, alerts.size());
+
+        DetectionAlertEntity alert = alerts.getFirst();
+
+        assertEquals("NET-002", alert.getRuleId());
+        assertEquals(
+                "DISTINCT_DESTINATION_HOSTS",
+                alert.getMetricType()
+        );
+        assertEquals(3, alert.getObservedCount());
+        assertEquals(sensorId, alert.getSensorId());
+    }
+
 }

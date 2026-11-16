@@ -221,4 +221,42 @@ class DetectionAlertPersistenceTest {
         assertEquals(original, persisted.toDomain());
     }
 
+
+    @Test
+    void shouldRestoreExplicitMetricType() {
+        DetectionAlert original = new DetectionAlert(
+                "TEST-CUSTOM-METRIC",
+                "192.0.2.10",
+                "192.0.2.20",
+                Instant.parse("2026-11-16T13:00:00Z"),
+                4,
+                3,
+                "Explicit metric round-trip test",
+                uniqueSensor(),
+                dev.kayquemiguel.aegis.detection.DetectionMetricType
+                        .DISTINCT_DESTINATION_HOSTS
+        );
+
+        UUID id = service.save(original);
+        repository.flush();
+
+        DetectionAlertEntity persisted =
+                repository.findById(id).orElseThrow();
+
+        assertEquals(
+                "DISTINCT_DESTINATION_HOSTS",
+                persisted.getMetricType()
+        );
+
+        assertEquals(4, persisted.getObservedCount());
+
+        DetectionAlert recovered = persisted.toDomain();
+
+        assertEquals(original, recovered);
+        assertEquals(
+                original.metricType(),
+                recovered.metricType()
+        );
+    }
+
 }

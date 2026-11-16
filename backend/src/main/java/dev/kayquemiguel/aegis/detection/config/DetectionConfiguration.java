@@ -1,6 +1,7 @@
 package dev.kayquemiguel.aegis.detection.config;
 
 import dev.kayquemiguel.aegis.detection.DetectionEngineFactory;
+import dev.kayquemiguel.aegis.detection.HorizontalPortScanDetector;
 import dev.kayquemiguel.aegis.detection.PossiblePortScanDetector;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,10 @@ public class DetectionConfiguration {
         return new DetectionEngineFactory(
                 List.of(
                         () -> new PossiblePortScanDetector(
+                                PORT_SCAN_WINDOW,
+                                PORT_SCAN_THRESHOLD
+                        ),
+                        () -> new HorizontalPortScanDetector(
                                 PORT_SCAN_WINDOW,
                                 PORT_SCAN_THRESHOLD
                         )

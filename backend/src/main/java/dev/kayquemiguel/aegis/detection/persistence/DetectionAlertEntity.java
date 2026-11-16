@@ -98,7 +98,9 @@ public class DetectionAlertEntity {
                 distinctPorts,
                 detectionThreshold,
                 description,
-                sensorId
+                sensorId,
+                dev.kayquemiguel.aegis.detection.DetectionMetricType
+                        .valueOf(metricType)
         );
     }
 

@@ -216,7 +216,8 @@ public final class PossiblePortScanDetector implements DetectionRule {
                     threshold,
                     "Multiple distinct TCP destination ports "
                             + "observed within the detection window",
-                    event.sensorId()
+                    event.sensorId(),
+                    DetectionMetricType.DISTINCT_DESTINATION_PORTS
             ));
         }
 

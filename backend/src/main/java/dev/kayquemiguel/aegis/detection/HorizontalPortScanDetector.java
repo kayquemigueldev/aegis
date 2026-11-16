@@ -169,7 +169,8 @@ public final class HorizontalPortScanDetector
                     "Horizontal TCP port scan: multiple "
                             + "destination hosts contacted "
                             + "on the same port",
-                    event.sensorId()
+                    event.sensorId(),
+                    DetectionMetricType.DISTINCT_DESTINATION_HOSTS
             ));
         }
 
