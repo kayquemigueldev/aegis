@@ -18,9 +18,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
-public final class PossiblePortScanDetector {
+public final class PossiblePortScanDetector implements DetectionRule {
 
     public static final String RULE_ID = "NET-001";
+
+    @Override
+    public String ruleId() {
+        return RULE_ID;
+    }
+
 
     private static final Duration DEFAULT_IDLE_TIMEOUT =
             Duration.ofMinutes(10);
