@@ -2,8 +2,7 @@
 package dev.kayquemiguel.aegis.detection.pipeline;
 
 import dev.kayquemiguel.aegis.detection.DetectionEngine;
-import dev.kayquemiguel.aegis.detection.DetectionRuleRegistry;
-import dev.kayquemiguel.aegis.detection.PossiblePortScanDetector;
+import dev.kayquemiguel.aegis.detection.DetectionEngineFactory;
 import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertService;
 import dev.kayquemiguel.aegis.ingestion.suricata.ImportReport;
 import dev.kayquemiguel.aegis.ingestion.suricata.SuricataFlowParser;
@@ -14,24 +13,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class SuricataDetectionPipeline {
 
-    private static final Duration DETECTION_WINDOW =
-            Duration.ofSeconds(60);
-
-    private static final int DETECTION_THRESHOLD = 3;
-
     private final DetectionAlertService alertService;
     private final ImportRunRepository importRuns;
+    private final DetectionEngineFactory engineFactory;
 
     public SuricataDetectionPipeline(
             DetectionAlertService alertService,
-            ImportRunRepository importRuns
+            ImportRunRepository importRuns,
+            DetectionEngineFactory engineFactory
     ) {
         this.alertService = Objects.requireNonNull(
                 alertService,
@@ -41,6 +36,11 @@ public class SuricataDetectionPipeline {
         this.importRuns = Objects.requireNonNull(
                 importRuns,
                 "importRuns is required"
+        );
+
+        this.engineFactory = Objects.requireNonNull(
+                engineFactory,
+                "engineFactory is required"
         );
     }
 
@@ -93,16 +93,7 @@ public class SuricataDetectionPipeline {
                             Clock.systemUTC()
                     );
 
-            DetectionEngine engine = new DetectionEngine(
-                    new DetectionRuleRegistry(
-                            java.util.List.of(
-                                    new PossiblePortScanDetector(
-                                            DETECTION_WINDOW,
-                                            DETECTION_THRESHOLD
-                                    )
-                            )
-                    )
-            );
+            DetectionEngine engine = engineFactory.create();
 
             AtomicLong alertsPersisted =
                     new AtomicLong();
