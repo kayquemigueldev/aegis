@@ -56,4 +56,20 @@ public record DetectionAlert(
             );
         }
     }
+
+    public DetectionMetricType metricType() {
+        return switch (ruleId) {
+            case "NET-001" ->
+                    DetectionMetricType.DISTINCT_DESTINATION_PORTS;
+            case "NET-002" ->
+                    DetectionMetricType.DISTINCT_DESTINATION_HOSTS;
+            default ->
+                    DetectionMetricType.DISTINCT_DESTINATION_PORTS;
+        };
+    }
+
+    public int observedCount() {
+        return distinctPorts;
+    }
+
 }

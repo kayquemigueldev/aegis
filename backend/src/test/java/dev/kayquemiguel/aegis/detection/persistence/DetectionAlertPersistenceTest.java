@@ -174,4 +174,51 @@ class DetectionAlertPersistenceTest {
     private static String uniqueSensor() {
         return "test-" + UUID.randomUUID();
     }
+
+    @Test
+    void shouldPersistVerticalScanMetric() {
+        DetectionAlert original = alert(
+                uniqueSensor(),
+                "NET-001",
+                Instant.parse("2026-11-16T12:00:00Z")
+        );
+
+        UUID id = service.save(original);
+        repository.flush();
+
+        DetectionAlertEntity persisted =
+                repository.findById(id).orElseThrow();
+
+        assertEquals(
+                "DISTINCT_DESTINATION_PORTS",
+                persisted.getMetricType()
+        );
+        assertEquals(5, persisted.getObservedCount());
+        assertEquals(5, persisted.getDistinctPorts());
+        assertEquals(original, persisted.toDomain());
+    }
+
+    @Test
+    void shouldPersistHorizontalScanMetric() {
+        DetectionAlert original = alert(
+                uniqueSensor(),
+                "NET-002",
+                Instant.parse("2026-11-16T12:01:00Z")
+        );
+
+        UUID id = service.save(original);
+        repository.flush();
+
+        DetectionAlertEntity persisted =
+                repository.findById(id).orElseThrow();
+
+        assertEquals(
+                "DISTINCT_DESTINATION_HOSTS",
+                persisted.getMetricType()
+        );
+        assertEquals(5, persisted.getObservedCount());
+        assertEquals(5, persisted.getDistinctPorts());
+        assertEquals(original, persisted.toDomain());
+    }
+
 }

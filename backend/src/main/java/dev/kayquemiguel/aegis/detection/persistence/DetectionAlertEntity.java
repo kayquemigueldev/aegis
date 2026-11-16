@@ -37,6 +37,12 @@ public class DetectionAlertEntity {
     @Column(name = "distinct_ports", nullable = false)
     private int distinctPorts;
 
+    @Column(name = "metric_type", nullable = false, length = 64)
+    private String metricType;
+
+    @Column(name = "observed_count", nullable = false)
+    private int observedCount;
+
     @Column(name = "detection_threshold", nullable = false)
     private int detectionThreshold;
 
@@ -66,6 +72,8 @@ public class DetectionAlertEntity {
         this.destinationIp = alert.destinationIp();
         this.detectedAt = alert.detectedAt();
         this.distinctPorts = alert.distinctPorts();
+        this.metricType = alert.metricType().name();
+        this.observedCount = alert.observedCount();
         this.detectionThreshold = alert.threshold();
         this.description = alert.description();
     }
@@ -120,6 +128,14 @@ public class DetectionAlertEntity {
 
     public int getDistinctPorts() {
         return distinctPorts;
+    }
+
+    public String getMetricType() {
+        return metricType;
+    }
+
+    public int getObservedCount() {
+        return observedCount;
     }
 
     public int getDetectionThreshold() {

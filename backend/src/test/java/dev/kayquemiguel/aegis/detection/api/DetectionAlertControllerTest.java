@@ -198,4 +198,43 @@ class DetectionAlertControllerTest {
         mockMvc.perform(get("/api/v1/alerts/not-a-uuid"))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void shouldExposeHorizontalMetricInApi() throws Exception {
+        UUID id = save(sensor(), "NET-002", 0);
+
+        mockMvc.perform(get("/api/v1/alerts/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ruleId")
+                        .value("NET-002"))
+                .andExpect(jsonPath("$.metricType")
+                        .value("DISTINCT_DESTINATION_HOSTS"))
+                .andExpect(jsonPath("$.observedCount")
+                        .value(3))
+                .andExpect(jsonPath("$.distinctPorts")
+                        .value(3));
+    }
+
+    @Test
+    void shouldExposeMetricsInPaginatedList() throws Exception {
+        String sensorId = sensor();
+
+        save(sensorId, "NET-001", 0);
+        save(sensorId, "NET-002", 10);
+
+        mockMvc.perform(get("/api/v1/alerts")
+                        .param("sensorId", sensorId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements")
+                        .value(2))
+                .andExpect(jsonPath("$.content[0].metricType")
+                        .value("DISTINCT_DESTINATION_HOSTS"))
+                .andExpect(jsonPath("$.content[0].observedCount")
+                        .value(3))
+                .andExpect(jsonPath("$.content[1].metricType")
+                        .value("DISTINCT_DESTINATION_PORTS"))
+                .andExpect(jsonPath("$.content[1].observedCount")
+                        .value(3));
+    }
+
 }

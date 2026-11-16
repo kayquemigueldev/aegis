@@ -16,7 +16,9 @@ public record DetectionAlertResponse(
         int distinctPorts,
         int threshold,
         String description,
-        Instant createdAt
+        Instant createdAt,
+        String metricType,
+        int observedCount
 ) {
     public static DetectionAlertResponse from(
             DetectionAlertEntity entity
@@ -31,7 +33,9 @@ public record DetectionAlertResponse(
                 entity.getDistinctPorts(),
                 entity.getDetectionThreshold(),
                 entity.getDescription(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(),
+                entity.getMetricType(),
+                entity.getObservedCount()
         );
     }
 }
