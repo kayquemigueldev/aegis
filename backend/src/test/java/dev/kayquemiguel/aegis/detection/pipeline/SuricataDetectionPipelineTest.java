@@ -317,4 +317,166 @@ class SuricataDetectionPipelineTest {
         assertEquals(sensorId, alert.getSensorId());
     }
 
+
+    @Test
+    void shouldDetectVerticalAndHorizontalScansTogether()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1001", 0),
+                flow(80, "1002", 5),
+                flow(443, "1003", 10),
+                flow(22, "1004", 15)
+                        .replace("192.0.2.20", "192.0.2.21"),
+                flow(22, "1005", 20)
+                        .replace("192.0.2.20", "192.0.2.22")
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(5, report.importReport().accepted());
+        assertEquals(0, report.importReport().rejected());
+        assertEquals(2, report.alertsPersisted());
+
+        List<DetectionAlertEntity> alerts =
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                );
+
+        assertEquals(2, alerts.size());
+
+        DetectionAlertEntity vertical = alerts.stream()
+                .filter(a -> "NET-001".equals(a.getRuleId()))
+                .findFirst()
+                .orElseThrow();
+
+        DetectionAlertEntity horizontal = alerts.stream()
+                .filter(a -> "NET-002".equals(a.getRuleId()))
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(
+                "DISTINCT_DESTINATION_PORTS",
+                vertical.getMetricType()
+        );
+        assertEquals(3, vertical.getObservedCount());
+        assertEquals(
+                BASE.plusSeconds(10),
+                vertical.getDetectedAt()
+        );
+
+        assertEquals(
+                "DISTINCT_DESTINATION_HOSTS",
+                horizontal.getMetricType()
+        );
+        assertEquals(3, horizontal.getObservedCount());
+        assertEquals(
+                BASE.plusSeconds(20),
+                horizontal.getDetectedAt()
+        );
+
+        assertEquals(sensorId, vertical.getSensorId());
+        assertEquals(sensorId, horizontal.getSensorId());
+
+        assertEquals(
+                vertical.getSourceIp(),
+                horizontal.getSourceIp()
+        );
+
+        assertNotEquals(
+                vertical.getRuleId(),
+                horizontal.getRuleId()
+        );
+    }
+
+
+    @Test
+    void shouldNotAlertOnLowVolumeTraffic()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1101", 0),
+                flow(80, "1102", 10),
+                flow(22, "1103", 20)
+                        .replace("192.0.2.20", "192.0.2.21")
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(0, report.importReport().rejected());
+        assertEquals(0, report.alertsPersisted());
+
+        assertTrue(
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                ).isEmpty()
+        );
+    }
+
+
+    @Test
+    void shouldExpireVerticalScanWindow()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1201", 0),
+                flow(80, "1202", 70),
+                flow(443, "1203", 140)
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(0, report.importReport().rejected());
+        assertEquals(0, report.alertsPersisted());
+
+        assertTrue(
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                ).isEmpty()
+        );
+    }
+
+    @Test
+    void shouldExpireHorizontalScanWindow()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path path = file(
+                flow(22, "1301", 0),
+                flow(22, "1302", 70)
+                        .replace("192.0.2.20", "192.0.2.21"),
+                flow(22, "1303", 140)
+                        .replace("192.0.2.20", "192.0.2.22")
+        );
+
+        DetectionPipelineReport report =
+                pipeline.process(path, sensorId);
+
+        repository.flush();
+
+        assertEquals(3, report.importReport().accepted());
+        assertEquals(0, report.importReport().rejected());
+        assertEquals(0, report.alertsPersisted());
+
+        assertTrue(
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                ).isEmpty()
+        );
+    }
+
 }
