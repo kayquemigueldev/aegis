@@ -603,7 +603,7 @@ class SuricataDetectionPipelineTest {
         Path path = file(
                 flow(22, "1801", 0),
                 flow(80, "1802", 30),
-                flow(443, "1803", 20),
+                flow(443, "1803", 19),
                 flow(8080, "1804", 50)
         );
 
@@ -639,7 +639,7 @@ class SuricataDetectionPipelineTest {
                 flow(22, "1901", 0),
                 flow(22, "1902", 30)
                         .replace("192.0.2.20", "192.0.2.21"),
-                flow(22, "1903", 20)
+                flow(22, "1903", 19)
                         .replace("192.0.2.20", "192.0.2.22"),
                 flow(22, "1904", 50)
                         .replace("192.0.2.20", "192.0.2.23")

@@ -176,7 +176,7 @@ class PossiblePortScanDetectorTest {
     @Test
     void shouldIgnoreOutOfOrderEvents() {
         detector.evaluate(tcp(22, "1", 30));
-        detector.evaluate(tcp(80, "2", 20));
+        detector.evaluate(tcp(80, "2", 19));
 
         assertTrue(detector.evaluate(
                 tcp(443, "3", 40)).isEmpty());
@@ -213,4 +213,59 @@ class PossiblePortScanDetectorTest {
                 )
         );
     }
+
+    @Test
+    void shouldAcceptSlightlyLateVerticalScanEvent() {
+        assertTrue(detector.evaluate(
+                tcp(22, "late-v-1", 0)).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(80, "late-v-2", 30)).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp(443, "late-v-3", 20)
+        ).orElseThrow();
+
+        assertEquals("NET-001", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+        assertEquals(
+                DetectionMetricType.DISTINCT_DESTINATION_PORTS,
+                alert.metricType()
+        );
+    }
+
+
+    @Test
+    void shouldRejectVerticalEventBeyondLatenessLimit() {
+        assertTrue(detector.evaluate(
+                tcp(22, "late-limit-v-1", 0)).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(80, "late-limit-v-2", 30)).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(443, "late-limit-v-3", 19)).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(8080, "late-limit-v-4", 40)).isPresent());
+    }
+
+    @Test
+    void shouldDeduplicateSlightlyLateVerticalFlow() {
+        assertTrue(detector.evaluate(
+                tcp(22, "duplicate-v-1", 0)).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(80, "duplicate-v-2", 30)).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(443, "duplicate-v-1", 20)).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp(8080, "duplicate-v-3", 40)
+        ).orElseThrow();
+
+        assertEquals(3, alert.observedCount());
+    }
+
 }

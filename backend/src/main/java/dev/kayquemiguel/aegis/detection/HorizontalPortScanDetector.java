@@ -6,6 +6,8 @@ import dev.kayquemiguel.aegis.domain.event.NetworkProtocol;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,6 +33,9 @@ public final class HorizontalPortScanDetector
 
     private final Map<GroupKey, GroupState> states =
             new LinkedHashMap<>(16, 0.75f, true);
+
+    private static final Duration MAX_EVENT_LATENESS =
+            Duration.ofSeconds(10);
 
     private Instant ingestionWatermark;
 
@@ -106,18 +111,24 @@ public final class HorizontalPortScanDetector
         Instant occurredAt = event.occurredAt();
 
         if (state.latestTimestamp != null
-                && occurredAt.isBefore(state.latestTimestamp)) {
+                && occurredAt.isBefore(
+                        state.latestTimestamp.minus(
+                                MAX_EVENT_LATENESS
+                        ))) {
             return Optional.empty();
         }
 
-        state.latestTimestamp = occurredAt;
+        if (state.latestTimestamp == null
+                || occurredAt.isAfter(state.latestTimestamp)) {
+            state.latestTimestamp = occurredAt;
+        }
 
         if (state.lastSeenIngestedAt == null
                 || ingestedAt.isAfter(state.lastSeenIngestedAt)) {
             state.lastSeenIngestedAt = ingestedAt;
         }
 
-        Instant cutoff = occurredAt.minus(window);
+        Instant cutoff = state.latestTimestamp.minus(window);
 
         while (!state.observations.isEmpty()
                 && state.observations.peekFirst()
@@ -140,7 +151,8 @@ public final class HorizontalPortScanDetector
         int previousCount =
                 distinctDestinationCount(state.observations);
 
-        state.observations.addLast(
+        addObservationInTimestampOrder(
+                state.observations,
                 new Observation(
                         occurredAt,
                         event.sourceFlowId(),
@@ -163,7 +175,7 @@ public final class HorizontalPortScanDetector
                     RULE_ID,
                     event.sourceIp(),
                     event.destinationIp(),
-                    occurredAt,
+                    state.latestTimestamp,
                     currentCount,
                     threshold,
                     "Horizontal TCP port scan: multiple "
@@ -211,6 +223,30 @@ public final class HorizontalPortScanDetector
             iterator.next();
             iterator.remove();
         }
+    }
+
+    private static void addObservationInTimestampOrder(
+            Deque<Observation> observations,
+            Observation incoming
+    ) {
+        if (observations.isEmpty()
+                || !incoming.timestamp().isBefore(
+                        observations.peekLast().timestamp()
+                )) {
+            observations.addLast(incoming);
+            return;
+        }
+
+        java.util.List<Observation> sorted =
+                new ArrayList<>(observations);
+
+        sorted.add(incoming);
+        sorted.sort(
+                Comparator.comparing(Observation::timestamp)
+        );
+
+        observations.clear();
+        observations.addAll(sorted);
     }
 
     private static int distinctDestinationCount(

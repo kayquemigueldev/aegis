@@ -244,4 +244,68 @@ class HorizontalPortScanDetectorTest {
                 )
         );
     }
+
+    @Test
+    void shouldAcceptSlightlyLateHorizontalScanEvent() {
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.20", 22, "late-h-1", 0)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.21", 22, "late-h-2", 30)
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp("192.0.2.22", 22, "late-h-3", 20)
+        ).orElseThrow();
+
+        assertEquals("NET-002", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+        assertEquals(
+                DetectionMetricType.DISTINCT_DESTINATION_HOSTS,
+                alert.metricType()
+        );
+    }
+
+
+    @Test
+    void shouldRejectHorizontalEventBeyondLatenessLimit() {
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.20", 22, "late-limit-h-1", 0)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.21", 22, "late-limit-h-2", 30)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.22", 22, "late-limit-h-3", 19)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.23", 22, "late-limit-h-4", 40)
+        ).isPresent());
+    }
+
+    @Test
+    void shouldDeduplicateSlightlyLateHorizontalFlow() {
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.20", 22, "duplicate-h-1", 0)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.21", 22, "duplicate-h-2", 30)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.22", 22, "duplicate-h-1", 20)
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp("192.0.2.23", 22, "duplicate-h-3", 40)
+        ).orElseThrow();
+
+        assertEquals(3, alert.observedCount());
+    }
+
 }
