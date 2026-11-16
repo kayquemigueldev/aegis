@@ -411,4 +411,94 @@ class HorizontalPortScanDetectorTest {
         assertEquals(3, alert.observedCount());
     }
 
+
+    @Test
+    void shouldEvictOldHorizontalGroupAtCapacity() {
+        // Primeiro grupo: origem conhecida.
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.20", 22, "scale-first", 0)
+        ).isEmpty());
+
+        // Cria 9.999 outros grupos independentes.
+        for (int i = 1; i <= 9999; i++) {
+            String source = "10.0."
+                    + (i / 256)
+                    + "."
+                    + (i % 256);
+
+            assertTrue(detector.evaluate(event(
+                    "sensor-001",
+                    source,
+                    "192.0.2.20",
+                    22,
+                    "scale-" + i,
+                    0,
+                    NetworkProtocol.TCP
+            )).isEmpty());
+        }
+
+        // Grupo 10.001: força a remoção do primeiro.
+        assertTrue(detector.evaluate(event(
+                "sensor-001",
+                "10.0.40.1",
+                "192.0.2.20",
+                22,
+                "scale-overflow",
+                1,
+                NetworkProtocol.TCP
+        )).isEmpty());
+
+        // A origem inicial deve recomeçar sua contagem.
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.21", 22, "scale-return-1", 2)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.22", 22, "scale-return-2", 3)
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp("192.0.2.23", 22, "scale-return-3", 4)
+        ).orElseThrow();
+
+        assertEquals("NET-002", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+    }
+
+
+    @Test
+    void shouldContinueHorizontalDetectionUnderSustainedLoad() {
+        for (int i = 0; i < 1024; i++) {
+            assertTrue(detector.evaluate(
+                    tcp(
+                            "192.0.2.20",
+                            22,
+                            "sustained-h-" + i,
+                            0
+                    )
+            ).isEmpty());
+        }
+
+        assertTrue(detector.evaluate(
+                tcp(
+                        "192.0.2.21",
+                        22,
+                        "sustained-h-new-1",
+                        1
+                )
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp(
+                        "192.0.2.22",
+                        22,
+                        "sustained-h-new-2",
+                        2
+                )
+        ).orElseThrow();
+
+        assertEquals("NET-002", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+    }
+
 }

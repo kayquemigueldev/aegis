@@ -382,4 +382,95 @@ class PossiblePortScanDetectorTest {
         );
     }
 
+
+    @Test
+    void shouldEvictLeastRecentlyUsedVerticalPair() {
+        PossiblePortScanDetector bounded =
+                new PossiblePortScanDetector(
+                        Duration.ofSeconds(60),
+                        3,
+                        Duration.ofMinutes(10),
+                        2,
+                        512
+                );
+
+        assertTrue(bounded.evaluate(event(
+                "192.0.2.10", "192.0.2.20",
+                22, "lru-v-1", 0,
+                NetworkProtocol.TCP
+        )).isEmpty());
+
+        assertTrue(bounded.evaluate(event(
+                "192.0.2.30", "192.0.2.20",
+                22, "lru-v-2", 1,
+                NetworkProtocol.TCP
+        )).isEmpty());
+
+        assertEquals(2, bounded.trackedPairCount());
+
+        // Terceiro grupo força a expulsão do primeiro.
+        assertTrue(bounded.evaluate(event(
+                "192.0.2.40", "192.0.2.20",
+                22, "lru-v-3", 2,
+                NetworkProtocol.TCP
+        )).isEmpty());
+
+        assertEquals(2, bounded.trackedPairCount());
+
+        // O primeiro grupo deve começar novamente do zero.
+        assertTrue(bounded.evaluate(
+                tcp(80, "lru-v-4", 3)
+        ).isEmpty());
+
+        assertTrue(bounded.evaluate(
+                tcp(443, "lru-v-5", 4)
+        ).isEmpty());
+
+        DetectionAlert alert = bounded.evaluate(
+                tcp(8080, "lru-v-6", 5)
+        ).orElseThrow();
+
+        assertEquals("NET-001", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+
+        assertEquals(2, bounded.trackedPairCount());
+    }
+
+
+    @Test
+    void shouldBoundVerticalObservationsUnderSustainedLoad() {
+        for (int i = 0; i < 1024; i++) {
+            assertTrue(detector.evaluate(
+                    tcp(22, "sustained-v-" + i, 0)
+            ).isEmpty());
+        }
+
+        assertEquals(
+                512,
+                detector.trackedObservationCount(
+                        "192.0.2.10",
+                        "192.0.2.20"
+                )
+        );
+
+        assertTrue(detector.evaluate(
+                tcp(80, "sustained-v-new-1", 1)
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp(443, "sustained-v-new-2", 2)
+        ).orElseThrow();
+
+        assertEquals("NET-001", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+
+        assertEquals(
+                512,
+                detector.trackedObservationCount(
+                        "192.0.2.10",
+                        "192.0.2.20"
+                )
+        );
+    }
+
 }
