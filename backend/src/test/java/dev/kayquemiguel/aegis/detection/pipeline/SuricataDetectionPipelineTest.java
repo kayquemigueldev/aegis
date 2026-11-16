@@ -242,4 +242,39 @@ class SuricataDetectionPipelineTest {
                 () -> pipeline.process(path, "invalid sensor")
         );
     }
+
+    @Test
+    void shouldNotShareDetectionStateBetweenImports()
+            throws IOException {
+        String sensorId = sensor();
+
+        Path firstFile = file(
+                flow(22, "701", 0),
+                flow(80, "702", 10)
+        );
+
+        Path secondFile = file(
+                flow(443, "703", 20)
+        );
+
+        DetectionPipelineReport first =
+                pipeline.process(firstFile, sensorId);
+
+        DetectionPipelineReport second =
+                pipeline.process(secondFile, sensorId);
+
+        repository.flush();
+
+        assertEquals(2, first.importReport().accepted());
+        assertEquals(1, second.importReport().accepted());
+
+        assertEquals(0, first.alertsPersisted());
+        assertEquals(0, second.alertsPersisted());
+
+        assertTrue(
+                repository.findBySensorIdOrderByDetectedAtDesc(
+                        sensorId
+                ).isEmpty()
+        );
+    }
 }
