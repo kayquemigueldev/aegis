@@ -308,4 +308,107 @@ class HorizontalPortScanDetectorTest {
         assertEquals(3, alert.observedCount());
     }
 
+
+    @Test
+    void shouldExpireLateHorizontalObservationsAndRecover() {
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.20", 22, "window-h-1", 0)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.21", 22, "window-h-2", 30)
+        ).isEmpty());
+
+        DetectionAlert first = detector.evaluate(
+                tcp("192.0.2.22", 22, "window-h-3", 20)
+        ).orElseThrow();
+
+        assertEquals(3, first.observedCount());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.23", 22, "window-h-4", 90)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.24", 22, "window-h-5", 95)
+        ).isEmpty());
+
+        DetectionAlert second = detector.evaluate(
+                tcp("192.0.2.25", 22, "window-h-6", 100)
+        ).orElseThrow();
+
+        assertEquals("NET-002", second.ruleId());
+        assertEquals(3, second.observedCount());
+    }
+
+
+    @Test
+    void shouldAllowReusedHorizontalFlowIdAfterExpiration() {
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.20", 22, "reused-h", 0)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.21", 22, "reused-h", 70)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp("192.0.2.22", 22, "reused-h-2", 80)
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp("192.0.2.23", 22, "reused-h-3", 90)
+        ).orElseThrow();
+
+        assertEquals("NET-002", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+    }
+
+
+    @Test
+    void shouldEvictOldestHorizontalFlowAtCapacity() {
+        for (int i = 0; i < 512; i++) {
+            assertTrue(detector.evaluate(
+                    tcp(
+                            "192.0.2.20",
+                            22,
+                            "capacity-h-" + i,
+                            0
+                    )
+            ).isEmpty());
+        }
+
+        // A observação 513 força a remoção da primeira.
+        assertTrue(detector.evaluate(
+                tcp(
+                        "192.0.2.20",
+                        22,
+                        "capacity-h-512",
+                        1
+                )
+        ).isEmpty());
+
+        // Agora podemos reutilizar o flowId removido.
+        assertTrue(detector.evaluate(
+                tcp(
+                        "192.0.2.21",
+                        22,
+                        "capacity-h-0",
+                        2
+                )
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp(
+                        "192.0.2.22",
+                        22,
+                        "capacity-h-new",
+                        3
+                )
+        ).orElseThrow();
+
+        assertEquals("NET-002", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+    }
+
 }

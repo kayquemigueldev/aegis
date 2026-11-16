@@ -268,4 +268,118 @@ class PossiblePortScanDetectorTest {
         assertEquals(3, alert.observedCount());
     }
 
+
+    @Test
+    void shouldExpireLateVerticalObservationsAndRecover() {
+        assertTrue(detector.evaluate(
+                tcp(22, "window-v-1", 0)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(80, "window-v-2", 30)
+        ).isEmpty());
+
+        DetectionAlert first = detector.evaluate(
+                tcp(443, "window-v-3", 20)
+        ).orElseThrow();
+
+        assertEquals(3, first.observedCount());
+
+        assertTrue(detector.evaluate(
+                tcp(8080, "window-v-4", 90)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(8443, "window-v-5", 95)
+        ).isEmpty());
+
+        DetectionAlert second = detector.evaluate(
+                tcp(3306, "window-v-6", 100)
+        ).orElseThrow();
+
+        assertEquals("NET-001", second.ruleId());
+        assertEquals(3, second.observedCount());
+    }
+
+
+    @Test
+    void shouldAllowReusedVerticalFlowIdAfterExpiration() {
+        assertTrue(detector.evaluate(
+                tcp(22, "reused-v", 0)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(80, "reused-v", 70)
+        ).isEmpty());
+
+        assertTrue(detector.evaluate(
+                tcp(443, "reused-v-2", 80)
+        ).isEmpty());
+
+        DetectionAlert alert = detector.evaluate(
+                tcp(8080, "reused-v-3", 90)
+        ).orElseThrow();
+
+        assertEquals("NET-001", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+    }
+
+
+    @Test
+    void shouldEvictOldestVerticalObservationAtCapacity() {
+        PossiblePortScanDetector bounded =
+                new PossiblePortScanDetector(
+                        Duration.ofSeconds(60),
+                        3,
+                        Duration.ofMinutes(10),
+                        2,
+                        3
+                );
+
+        assertTrue(bounded.evaluate(
+                tcp(22, "capacity-v-1", 0)
+        ).isEmpty());
+
+        assertTrue(bounded.evaluate(
+                tcp(22, "capacity-v-2", 1)
+        ).isEmpty());
+
+        assertTrue(bounded.evaluate(
+                tcp(22, "capacity-v-3", 2)
+        ).isEmpty());
+
+        assertEquals(
+                3,
+                bounded.trackedObservationCount(
+                        "192.0.2.10",
+                        "192.0.2.20"
+                )
+        );
+
+        // Força a remoção do primeiro flowId.
+        assertTrue(bounded.evaluate(
+                tcp(22, "capacity-v-4", 3)
+        ).isEmpty());
+
+        // Agora o identificador antigo pode ser reutilizado.
+        assertTrue(bounded.evaluate(
+                tcp(80, "capacity-v-1", 4)
+        ).isEmpty());
+
+        DetectionAlert alert = bounded.evaluate(
+                tcp(443, "capacity-v-5", 5)
+        ).orElseThrow();
+
+        assertEquals("NET-001", alert.ruleId());
+        assertEquals(3, alert.observedCount());
+
+        assertEquals(
+                3,
+                bounded.trackedObservationCount(
+                        "192.0.2.10",
+                        "192.0.2.20"
+                )
+        );
+    }
+
 }
