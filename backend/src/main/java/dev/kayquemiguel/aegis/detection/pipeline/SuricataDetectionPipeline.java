@@ -1,6 +1,8 @@
 
 package dev.kayquemiguel.aegis.detection.pipeline;
 
+import dev.kayquemiguel.aegis.detection.DetectionEngine;
+import dev.kayquemiguel.aegis.detection.DetectionRuleRegistry;
 import dev.kayquemiguel.aegis.detection.PossiblePortScanDetector;
 import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertService;
 import dev.kayquemiguel.aegis.ingestion.suricata.ImportReport;
@@ -91,23 +93,28 @@ public class SuricataDetectionPipeline {
                             Clock.systemUTC()
                     );
 
-            PossiblePortScanDetector detector =
-                    new PossiblePortScanDetector(
-                            DETECTION_WINDOW,
-                            DETECTION_THRESHOLD
-                    );
+            DetectionEngine engine = new DetectionEngine(
+                    new DetectionRuleRegistry(
+                            java.util.List.of(
+                                    new PossiblePortScanDetector(
+                                            DETECTION_WINDOW,
+                                            DETECTION_THRESHOLD
+                                    )
+                            )
+                    )
+            );
 
             AtomicLong alertsPersisted =
                     new AtomicLong();
 
             ImportReport report = importer.importFile(
                     snapshot.path(),
-                    event -> detector.evaluate(event)
-                            .ifPresent(alert -> {
-                                alertService.save(alert);
-
-                                alertsPersisted.incrementAndGet();
-                            })
+                    event -> {
+                        for (var alert : engine.evaluate(event)) {
+                            alertService.save(alert);
+                            alertsPersisted.incrementAndGet();
+                        }
+                    }
             );
 
             // Impede concluir a importacao se o
