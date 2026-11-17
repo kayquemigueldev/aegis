@@ -4,6 +4,8 @@ import dev.kayquemiguel.aegis.detection.BruteForceDetector;
 import dev.kayquemiguel.aegis.detection.persistence.AuthenticationAlertCommitService;
 import dev.kayquemiguel.aegis.detection.persistence.AuthenticationEventInbox;
 import dev.kayquemiguel.aegis.domain.event.AuthenticationEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +19,12 @@ import java.util.UUID;
 
 @Service
 public class DurableAuthenticationProcessor {
+
+    private static final Logger log =
+            LoggerFactory.getLogger(
+                    DurableAuthenticationProcessor.class
+            );
+
 
     private static final int PAGE_SIZE = 500;
 
@@ -37,7 +45,7 @@ public class DurableAuthenticationProcessor {
         this.jdbc = Objects.requireNonNull(jdbc);
     }
 
-    @Transactional
+    @Transactional(timeout = 120)
     public Optional<UUID> process(AuthenticationEvent incoming) {
         Objects.requireNonNull(incoming, "event required");
 
@@ -67,7 +75,7 @@ public class DurableAuthenticationProcessor {
         return ids.stream().findFirst();
     }
 
-    @Transactional
+    @Transactional(timeout = 120)
     public int recoverPending() {
         acquireProcessingLock();
 
@@ -112,6 +120,11 @@ public class DurableAuthenticationProcessor {
             return;
         }
 
+        long startedAt = System.nanoTime();
+        int pagesScanned = 0;
+        long eventsScanned = 0;
+        long eventsAcknowledged = 0;
+
         Instant lowerBound = earliestPending.minus(
                 Duration.ofMinutes(10)
         );
@@ -137,6 +150,9 @@ public class DurableAuthenticationProcessor {
                 break;
             }
 
+            pagesScanned++;
+            eventsScanned += page.size();
+
             for (var entry : page) {
                 AuthenticationEvent event = entry.event();
                 var detection = detector.evaluate(event);
@@ -150,6 +166,8 @@ public class DurableAuthenticationProcessor {
                     } else {
                         commits.acknowledgeWithoutAlert(event);
                     }
+
+                    eventsAcknowledged++;
                 }
 
                 cursorTime = event.ingestedAt();
@@ -162,6 +180,18 @@ public class DurableAuthenticationProcessor {
             }
         }
 
+        long elapsedMillis =
+                java.util.concurrent.TimeUnit.NANOSECONDS
+                        .toMillis(System.nanoTime() - startedAt);
+
+        log.info(
+                "AEGIS-101 replay examined: pages={}, "
+                + "events={}, acknowledged={}, elapsedMs={}",
+                pagesScanned,
+                eventsScanned,
+                eventsAcknowledged,
+                elapsedMillis
+        );
     }
 
 }

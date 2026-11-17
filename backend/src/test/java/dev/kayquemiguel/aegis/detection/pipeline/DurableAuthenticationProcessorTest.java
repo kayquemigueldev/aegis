@@ -551,4 +551,30 @@ class DurableAuthenticationProcessorTest {
         assertNotNull(alertId);
     }
 
+
+    @Test
+    void shouldConfigureTransactionTimeouts() throws Exception {
+        var processing = DurableAuthenticationProcessor.class
+                .getMethod(
+                        "process",
+                        AuthenticationEvent.class
+                )
+                .getAnnotation(
+                        org.springframework.transaction.annotation
+                                .Transactional.class
+                );
+
+        var recovery = DurableAuthenticationProcessor.class
+                .getMethod("recoverPending")
+                .getAnnotation(
+                        org.springframework.transaction.annotation
+                                .Transactional.class
+                );
+
+        assertNotNull(processing);
+        assertNotNull(recovery);
+        assertEquals(120, processing.timeout());
+        assertEquals(120, recovery.timeout());
+    }
+
 }
