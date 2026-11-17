@@ -11,6 +11,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -368,6 +370,185 @@ class DurableAuthenticationProcessorTest {
                 entries.get(1).event().id()
         );
         assertFalse(entries.get(1).processed());
+    }
+
+
+    @Test
+    void shouldPaginateEqualTimestampsWithoutSkippingEvents() {
+        String sensorId = sensor();
+        Instant timestamp =
+                Instant.parse("2045-01-01T10:00:00Z");
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(jdbc);
+
+        Set<UUID> expected = new HashSet<>();
+
+        for (int i = 0; i < 505; i++) {
+            AuthenticationEvent event = new AuthenticationEvent(
+                    UUID.randomUUID(),
+                    timestamp,
+                    timestamp,
+                    "192.0.2.20",
+                    "pagination-user",
+                    "pagination-test",
+                    sensorId,
+                    AuthenticationOutcome.SUCCESS
+            );
+
+            assertTrue(inbox.record(event));
+            assertTrue(expected.add(event.id()));
+        }
+
+        Set<UUID> collected = new HashSet<>();
+        Instant cursorTime = null;
+        String cursorSensor = null;
+        UUID cursorEvent = null;
+
+        int pages = 0;
+
+        while (true) {
+            var page = inbox.findReplayEntriesSince(
+                    timestamp,
+                    cursorTime,
+                    cursorSensor,
+                    cursorEvent,
+                    500
+            );
+
+            if (page.isEmpty()) {
+                break;
+            }
+
+            pages++;
+
+            for (var entry : page) {
+                var event = entry.event();
+
+                if (sensorId.equals(event.sensorId())) {
+                    assertTrue(
+                            collected.add(event.id()),
+                            "Duplicate event across replay pages"
+                    );
+                }
+
+                cursorTime = event.ingestedAt();
+                cursorSensor = event.sensorId();
+                cursorEvent = event.id();
+            }
+
+            if (page.size() < 500) {
+                break;
+            }
+        }
+
+        assertTrue(pages >= 2);
+        assertEquals(expected, collected);
+        assertEquals(505, collected.size());
+    }
+
+    @Test
+    void shouldDetectBruteForceAcrossReplayPageBoundary() {
+        String sensorId = sensor();
+        Instant base =
+                Instant.parse("2045-02-01T10:00:00Z");
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(jdbc);
+
+        // 498 successful events occupy almost all
+        // of the first replay page.
+        for (int i = 0; i < 498; i++) {
+            AuthenticationEvent success = new AuthenticationEvent(
+                    UUID.randomUUID(),
+                    base,
+                    base,
+                    "192.0.2.21",
+                    "boundary-user",
+                    "pagination-test",
+                    sensorId,
+                    AuthenticationOutcome.SUCCESS
+            );
+
+            assertTrue(inbox.record(success));
+            assertTrue(inbox.markProcessed(
+                    sensorId,
+                    success.id(),
+                    null
+            ));
+        }
+
+        AuthenticationEvent trigger = null;
+
+        // First two failures complete page one.
+        // The remaining three are on page two.
+        for (int i = 0; i < 5; i++) {
+            AuthenticationEvent failure = new AuthenticationEvent(
+                    UUID.randomUUID(),
+                    base.plusSeconds(i + 1),
+                    base.plusSeconds(i + 1),
+                    "192.0.2.21",
+                    "boundary-user",
+                    "pagination-test",
+                    sensorId,
+                    AuthenticationOutcome.FAILURE
+            );
+
+            assertTrue(inbox.record(failure));
+
+            if (i < 4) {
+                assertTrue(inbox.markProcessed(
+                        sensorId,
+                        failure.id(),
+                        null
+                ));
+            } else {
+                trigger = failure;
+            }
+        }
+
+        assertNotNull(trigger);
+
+        assertEquals(1, processor.recoverPending());
+        assertEquals(0, processor.recoverPending());
+
+        Integer processed = jdbc.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM auth_event_inbox
+                WHERE sensor_id = ?
+                  AND processed = TRUE
+                """,
+                Integer.class,
+                sensorId
+        );
+
+        Integer alerts = jdbc.queryForObject(
+                """
+                SELECT COUNT(*)
+                FROM detection_alerts
+                WHERE sensor_id = ?
+                  AND rule_id = 'NET-003'
+                """,
+                Integer.class,
+                sensorId
+        );
+
+        UUID alertId = jdbc.queryForObject(
+                """
+                SELECT alert_id
+                FROM auth_event_inbox
+                WHERE sensor_id = ?
+                  AND event_id = ?
+                """,
+                UUID.class,
+                sensorId,
+                trigger.id()
+        );
+
+        assertEquals(503, processed);
+        assertEquals(1, alerts);
+        assertNotNull(alertId);
     }
 
 }
