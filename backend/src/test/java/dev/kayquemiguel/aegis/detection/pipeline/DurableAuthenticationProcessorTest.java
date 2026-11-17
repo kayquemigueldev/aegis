@@ -239,4 +239,89 @@ class DurableAuthenticationProcessorTest {
         assertEquals(0, alerts);
     }
 
+
+    @Test
+    void shouldExcludeExpiredHistoryFromReplayPage() {
+        String sensorId = sensor();
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(jdbc);
+
+        AuthenticationEvent old = failure(sensorId, 0);
+        AuthenticationEvent recent = failure(sensorId, 720);
+
+        assertTrue(inbox.record(old));
+        assertTrue(inbox.record(recent));
+
+        var page = inbox.findReplayPageSince(
+                recent.ingestedAt().minusSeconds(600),
+                null,
+                null,
+                null,
+                1000
+        );
+
+        assertTrue(page.contains(recent));
+        assertFalse(page.contains(old));
+    }
+
+    @Test
+    void shouldPreserveDetectionForOlderPendingEvent() {
+        String sensorId = sensor();
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(jdbc);
+
+        AuthenticationEvent fifth = null;
+
+        for (int i = 0; i < 5; i++) {
+            AuthenticationEvent current = failure(sensorId, i);
+
+            assertTrue(inbox.record(current));
+
+            if (i < 4) {
+                assertTrue(inbox.markProcessed(
+                        current.sensorId(),
+                        current.id(),
+                        null
+                ));
+            } else {
+                fifth = current;
+            }
+        }
+
+        // A newer processed event must not move the replay
+        // lower bound past the older pending fifth failure.
+        AuthenticationEvent newer = failure(sensorId, 720);
+
+        assertTrue(inbox.record(newer));
+        assertTrue(inbox.markProcessed(
+                newer.sensorId(),
+                newer.id(),
+                null
+        ));
+
+        assertEquals(1, processor.recoverPending());
+
+        Integer alerts = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM detection_alerts "
+                + "WHERE sensor_id = ? "
+                + "AND rule_id = 'NET-003'",
+                Integer.class,
+                sensorId
+        );
+
+        assertEquals(1, alerts);
+
+        UUID linked = jdbc.queryForObject(
+                "SELECT alert_id FROM auth_event_inbox "
+                + "WHERE sensor_id = ? AND event_id = ?",
+                UUID.class,
+                sensorId,
+                fifth.id()
+        );
+
+        assertNotNull(linked);
+    }
+
 }

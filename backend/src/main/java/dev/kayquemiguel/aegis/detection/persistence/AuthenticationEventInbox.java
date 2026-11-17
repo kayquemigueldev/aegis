@@ -230,4 +230,90 @@ public class AuthenticationEventInbox {
         );
     }
 
+
+    public List<AuthenticationEvent> findReplayPageSince(
+            java.time.Instant fromInclusive,
+            java.time.Instant afterIngestedAt,
+            String afterSensorId,
+            UUID afterEventId,
+            int limit
+    ) {
+        Objects.requireNonNull(
+                fromInclusive, "Replay lower bound required"
+        );
+
+        if (limit < 1 || limit > 1000) {
+            throw new AuthenticationEventLimitException(
+                    "limit must be between 1 and 1000"
+            );
+        }
+
+        boolean initial = afterIngestedAt == null
+                && afterSensorId == null
+                && afterEventId == null;
+
+        boolean complete = afterIngestedAt != null
+                && afterSensorId != null
+                && afterEventId != null;
+
+        if (!initial && !complete) {
+            throw new AuthenticationEventLimitException(
+                    "Replay cursor must be complete"
+            );
+        }
+
+        String sql = """
+                SELECT sensor_id, event_id,
+                       occurred_at, ingested_at,
+                       source_ip, username,
+                       source_system, outcome
+                FROM auth_event_inbox
+                WHERE ingested_at >= ?
+                """;
+
+        Object[] parameters;
+
+        if (initial) {
+            parameters = new Object[] {
+                    Timestamp.from(fromInclusive),
+                    limit
+            };
+        } else {
+            sql += """
+                    AND (ingested_at, sensor_id, event_id)
+                        > (?, ?, ?)
+                    """;
+
+            parameters = new Object[] {
+                    Timestamp.from(fromInclusive),
+                    Timestamp.from(afterIngestedAt),
+                    afterSensorId,
+                    afterEventId,
+                    limit
+            };
+        }
+
+        sql += """
+                ORDER BY ingested_at, sensor_id, event_id
+                LIMIT ?
+                """;
+
+        return jdbc.query(
+                sql,
+                (rs, rowNum) -> new AuthenticationEvent(
+                        rs.getObject("event_id", UUID.class),
+                        rs.getTimestamp("occurred_at").toInstant(),
+                        rs.getTimestamp("ingested_at").toInstant(),
+                        rs.getString("source_ip"),
+                        rs.getString("username"),
+                        rs.getString("source_system"),
+                        rs.getString("sensor_id"),
+                        AuthenticationOutcome.valueOf(
+                                rs.getString("outcome")
+                        )
+                ),
+                parameters
+        );
+    }
+
 }

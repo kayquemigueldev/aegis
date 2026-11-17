@@ -47,7 +47,7 @@ public class DurableAuthenticationProcessor {
         // Duplicates are validated against their original payload.
         inbox.record(incoming);
 
-        replayAndAcknowledge();
+        replayAndAcknowledge(earliestPending());
 
         List<UUID> ids = jdbc.query(
                 """
@@ -83,7 +83,7 @@ public class DurableAuthenticationProcessor {
             return 0;
         }
 
-        replayAndAcknowledge();
+        replayAndAcknowledge(earliestPending());
 
         return count;
     }
@@ -96,7 +96,25 @@ public class DurableAuthenticationProcessor {
         );
     }
 
-    private void replayAndAcknowledge() {
+    private Instant earliestPending() {
+        java.sql.Timestamp timestamp = jdbc.queryForObject(
+                "SELECT MIN(ingested_at) "
+                + "FROM auth_event_inbox "
+                + "WHERE processed = FALSE",
+                java.sql.Timestamp.class
+        );
+
+        return timestamp == null ? null : timestamp.toInstant();
+    }
+
+    private void replayAndAcknowledge(Instant earliestPending) {
+        if (earliestPending == null) {
+            return;
+        }
+
+        Instant lowerBound = earliestPending.minus(
+                Duration.ofMinutes(10)
+        );
         BruteForceDetector detector = new BruteForceDetector(
                 Duration.ofSeconds(60), 5
         );
@@ -107,7 +125,8 @@ public class DurableAuthenticationProcessor {
 
         while (true) {
             List<AuthenticationEvent> page =
-                    inbox.findReplayPage(
+                    inbox.findReplayPageSince(
+                            lowerBound,
                             cursorTime,
                             cursorSensor,
                             cursorEvent,
