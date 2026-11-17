@@ -1,6 +1,7 @@
 package dev.kayquemiguel.aegis.detection.api;
 
-import dev.kayquemiguel.aegis.detection.pipeline.AuthenticationDetectionPipeline;
+import dev.kayquemiguel.aegis.detection.pipeline.DurableAuthenticationProcessor;
+import dev.kayquemiguel.aegis.detection.persistence.AuthenticationEventConflictException;
 import dev.kayquemiguel.aegis.domain.event.AuthenticationEvent;
 import dev.kayquemiguel.aegis.domain.event.AuthenticationOutcome;
 import dev.kayquemiguel.aegis.security.SensorAccessPolicy;
@@ -16,11 +17,11 @@ import java.util.UUID;
 @RequestMapping("/api/v1/sensors")
 public class AuthenticationEventController {
 
-    private final AuthenticationDetectionPipeline pipeline;
+    private final DurableAuthenticationProcessor pipeline;
     private final SensorAccessPolicy accessPolicy;
 
     public AuthenticationEventController(
-            AuthenticationDetectionPipeline pipeline,
+            DurableAuthenticationProcessor pipeline,
             SensorAccessPolicy accessPolicy
     ) {
         this.pipeline = pipeline;
@@ -69,7 +70,15 @@ public class AuthenticationEventController {
             return ResponseEntity.badRequest().build();
         }
 
-        var alertId = pipeline.process(event);
+        java.util.Optional<UUID> alertId;
+
+        try {
+            alertId = pipeline.process(event);
+        } catch (AuthenticationEventConflictException exception) {
+            return ResponseEntity.status(
+                    HttpStatus.CONFLICT
+            ).build();
+        }
 
         IngestionResponse response = new IngestionResponse(
                 alertId.isPresent(),

@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -114,6 +115,7 @@ class AuthenticationEventControllerTest {
             throws Exception {
         String sensorId = "test-" + UUID.randomUUID();
         UUID duplicateId = UUID.randomUUID();
+        String duplicatePayload = payload(duplicateId);
 
         for (int i = 0; i < 10; i++) {
             mockMvc.perform(post(
@@ -121,7 +123,7 @@ class AuthenticationEventControllerTest {
                             sensorId
                     )
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(payload(duplicateId)))
+                    .content(duplicatePayload))
                     .andExpect(status().isAccepted())
                     .andExpect(jsonPath("$.alertGenerated")
                             .value(false));
@@ -232,6 +234,81 @@ class AuthenticationEventControllerTest {
                     .content(json))
                     .andExpect(status().isBadRequest());
         }
+    }
+
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldReturnConflictForChangedDuplicate()
+            throws Exception {
+        String sensorId = "test-" + UUID.randomUUID();
+        UUID eventId = UUID.randomUUID();
+
+        String original = payload(eventId);
+
+        mockMvc.perform(post(
+                        "/api/v1/sensors/{sensorId}/auth-events",
+                        sensorId
+                )
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(original))
+                .andExpect(status().isAccepted());
+
+        String modified = original.replace(
+                "\"username\": \"admin\"",
+                "\"username\": \"other-user\""
+        );
+
+        mockMvc.perform(post(
+                        "/api/v1/sensors/{sensorId}/auth-events",
+                        sensorId
+                )
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(modified))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldReturnSameAlertIdOnHttpRetry()
+            throws Exception {
+        String sensorId = "test-" + UUID.randomUUID();
+
+        for (int i = 0; i < 4; i++) {
+            mockMvc.perform(post(
+                            "/api/v1/sensors/{sensorId}/auth-events",
+                            sensorId
+                    )
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(payload(UUID.randomUUID())))
+                    .andExpect(status().isAccepted());
+        }
+
+        String fifth = payload(UUID.randomUUID());
+
+        String firstResponse = mockMvc.perform(post(
+                        "/api/v1/sensors/{sensorId}/auth-events",
+                        sensorId
+                )
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fifth))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String retryResponse = mockMvc.perform(post(
+                        "/api/v1/sensors/{sensorId}/auth-events",
+                        sensorId
+                )
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(fifth))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        assertEquals(firstResponse, retryResponse);
     }
 
 }
