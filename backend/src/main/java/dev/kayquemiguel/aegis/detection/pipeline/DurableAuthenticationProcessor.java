@@ -124,8 +124,8 @@ public class DurableAuthenticationProcessor {
         UUID cursorEvent = null;
 
         while (true) {
-            List<AuthenticationEvent> page =
-                    inbox.findReplayPageSince(
+            List<AuthenticationEventInbox.ReplayEntry> page =
+                    inbox.findReplayEntriesSince(
                             lowerBound,
                             cursorTime,
                             cursorSensor,
@@ -137,22 +137,11 @@ public class DurableAuthenticationProcessor {
                 break;
             }
 
-            for (AuthenticationEvent event : page) {
+            for (var entry : page) {
+                AuthenticationEvent event = entry.event();
                 var detection = detector.evaluate(event);
 
-                Boolean processed = jdbc.queryForObject(
-                        """
-                        SELECT processed
-                        FROM auth_event_inbox
-                        WHERE sensor_id = ?
-                          AND event_id = ?
-                        """,
-                        Boolean.class,
-                        event.sensorId(),
-                        event.id()
-                );
-
-                if (Boolean.FALSE.equals(processed)) {
+                if (!entry.processed()) {
                     if (detection.isPresent()) {
                         commits.persistAndAcknowledge(
                                 event,

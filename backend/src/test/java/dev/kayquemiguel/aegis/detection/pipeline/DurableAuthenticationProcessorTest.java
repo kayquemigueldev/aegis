@@ -324,4 +324,50 @@ class DurableAuthenticationProcessorTest {
         assertNotNull(linked);
     }
 
+
+    @Test
+    void shouldReturnProcessedStateWithReplayEntries() {
+        String sensorId = sensor();
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(jdbc);
+
+        AuthenticationEvent acknowledged = failure(sensorId, 0);
+        AuthenticationEvent pending = failure(sensorId, 1);
+
+        assertTrue(inbox.record(acknowledged));
+        assertTrue(inbox.record(pending));
+
+        assertTrue(inbox.markProcessed(
+                sensorId,
+                acknowledged.id(),
+                null
+        ));
+
+        var entries = inbox.findReplayEntriesSince(
+                acknowledged.ingestedAt().minusSeconds(1),
+                null,
+                null,
+                null,
+                1000
+        ).stream()
+                .filter(entry ->
+                        entry.event().sensorId().equals(sensorId))
+                .toList();
+
+        assertEquals(2, entries.size());
+
+        assertEquals(
+                acknowledged.id(),
+                entries.get(0).event().id()
+        );
+        assertTrue(entries.get(0).processed());
+
+        assertEquals(
+                pending.id(),
+                entries.get(1).event().id()
+        );
+        assertFalse(entries.get(1).processed());
+    }
+
 }

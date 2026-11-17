@@ -233,7 +233,30 @@ public class AuthenticationEventInbox {
     }
 
 
+
     public List<AuthenticationEvent> findReplayPageSince(
+            java.time.Instant fromInclusive,
+            java.time.Instant afterIngestedAt,
+            String afterSensorId,
+            UUID afterEventId,
+            int limit
+    ) {
+        return findReplayEntriesSince(
+                fromInclusive,
+                afterIngestedAt,
+                afterSensorId,
+                afterEventId,
+                limit
+        ).stream().map(ReplayEntry::event).toList();
+    }
+
+    public record ReplayEntry(
+            AuthenticationEvent event,
+            boolean processed
+    ) {
+    }
+
+    public List<ReplayEntry> findReplayEntriesSince(
             java.time.Instant fromInclusive,
             java.time.Instant afterIngestedAt,
             String afterSensorId,
@@ -268,7 +291,7 @@ public class AuthenticationEventInbox {
                 SELECT sensor_id, event_id,
                        occurred_at, ingested_at,
                        source_ip, username,
-                       source_system, outcome
+                       source_system, outcome, processed
                 FROM auth_event_inbox
                 WHERE ingested_at >= ?
                 """;
@@ -302,7 +325,7 @@ public class AuthenticationEventInbox {
 
         return jdbc.query(
                 sql,
-                (rs, rowNum) -> new AuthenticationEvent(
+                (rs, rowNum) -> new ReplayEntry(new AuthenticationEvent(
                         rs.getObject("event_id", UUID.class),
                         rs.getTimestamp("occurred_at").toInstant(),
                         rs.getTimestamp("ingested_at").toInstant(),
@@ -313,7 +336,7 @@ public class AuthenticationEventInbox {
                         AuthenticationOutcome.valueOf(
                                 rs.getString("outcome")
                         )
-                ),
+                ), rs.getBoolean("processed")),
                 parameters
         );
     }
