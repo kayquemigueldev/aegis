@@ -158,4 +158,85 @@ class DurableAuthenticationProcessorTest {
 
         assertEquals(1, events);
     }
+
+    @Test
+    void shouldRecoverPendingAlertWithoutNewRequest() {
+        String sensorId = sensor();
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(
+                        jdbc
+                );
+
+        for (int i = 0; i < 5; i++) {
+            AuthenticationEvent current =
+                    failure(sensorId, i);
+
+            assertTrue(inbox.record(current));
+
+            if (i < 4) {
+                assertTrue(inbox.markProcessed(
+                        sensorId,
+                        current.id(),
+                        null
+                ));
+            }
+        }
+
+        assertEquals(1, processor.recoverPending());
+        assertEquals(0, processor.recoverPending());
+
+        Integer pending = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM auth_event_inbox "
+                + "WHERE sensor_id = ? AND processed = FALSE",
+                Integer.class,
+                sensorId
+        );
+
+        Integer alerts = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM detection_alerts "
+                + "WHERE sensor_id = ? AND rule_id = 'NET-003'",
+                Integer.class,
+                sensorId
+        );
+
+        assertEquals(0, pending);
+        assertEquals(1, alerts);
+    }
+
+    @Test
+    void shouldRecoverPendingEventWithoutAlert() {
+        String sensorId = sensor();
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(
+                        jdbc
+                );
+
+        AuthenticationEvent original =
+                failure(sensorId, 0);
+
+        assertTrue(inbox.record(original));
+
+        assertEquals(1, processor.recoverPending());
+
+        Boolean processed = jdbc.queryForObject(
+                "SELECT processed FROM auth_event_inbox "
+                + "WHERE sensor_id = ? AND event_id = ?",
+                Boolean.class,
+                sensorId,
+                original.id()
+        );
+
+        Integer alerts = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM detection_alerts "
+                + "WHERE sensor_id = ? AND rule_id = 'NET-003'",
+                Integer.class,
+                sensorId
+        );
+
+        assertEquals(Boolean.TRUE, processed);
+        assertEquals(0, alerts);
+    }
+
 }

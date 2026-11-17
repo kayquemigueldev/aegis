@@ -42,15 +42,61 @@ public class DurableAuthenticationProcessor {
         Objects.requireNonNull(incoming, "event required");
 
         // Transaction-scoped across application instances.
+        acquireProcessingLock();
+
+        // Duplicates are validated against their original payload.
+        inbox.record(incoming);
+
+        replayAndAcknowledge();
+
+        List<UUID> ids = jdbc.query(
+                """
+                SELECT alert_id
+                FROM auth_event_inbox
+                WHERE sensor_id = ?
+                  AND event_id = ?
+                  AND processed = TRUE
+                  AND alert_id IS NOT NULL
+                """,
+                (rs, rowNum) ->
+                        rs.getObject("alert_id", UUID.class),
+                incoming.sensorId(),
+                incoming.id()
+        );
+
+        return ids.stream().findFirst();
+    }
+
+    @Transactional
+    public int recoverPending() {
+        acquireProcessingLock();
+
+        Integer pending = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM auth_event_inbox "
+                + "WHERE processed = FALSE",
+                Integer.class
+        );
+
+        int count = Objects.requireNonNull(pending);
+
+        if (count == 0) {
+            return 0;
+        }
+
+        replayAndAcknowledge();
+
+        return count;
+    }
+
+    private void acquireProcessingLock() {
         jdbc.queryForObject(
                 "SELECT pg_advisory_xact_lock(?)",
                 Object.class,
                 PROCESSING_LOCK
         );
+    }
 
-        // Duplicates are validated against their original payload.
-        inbox.record(incoming);
-
+    private void replayAndAcknowledge() {
         BruteForceDetector detector = new BruteForceDetector(
                 Duration.ofSeconds(60), 5
         );
@@ -108,21 +154,6 @@ public class DurableAuthenticationProcessor {
             }
         }
 
-        List<UUID> ids = jdbc.query(
-                """
-                SELECT alert_id
-                FROM auth_event_inbox
-                WHERE sensor_id = ?
-                  AND event_id = ?
-                  AND processed = TRUE
-                  AND alert_id IS NOT NULL
-                """,
-                (rs, rowNum) ->
-                        rs.getObject("alert_id", UUID.class),
-                incoming.sensorId(),
-                incoming.id()
-        );
-
-        return ids.stream().findFirst();
     }
+
 }
