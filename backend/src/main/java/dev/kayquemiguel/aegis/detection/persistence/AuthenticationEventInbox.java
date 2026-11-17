@@ -44,7 +44,7 @@ public class AuthenticationEventInbox {
                 """,
                 event.sensorId(),
                 event.id(),
-                Timestamp.from(event.occurredAt()),
+                Timestamp.from(event.occurredAt().truncatedTo(java.time.temporal.ChronoUnit.MICROS)),
                 Timestamp.from(event.ingestedAt()),
                 event.sourceIp(),
                 event.username(),
@@ -73,7 +73,9 @@ public class AuthenticationEventInbox {
 
         boolean samePayload =
                 ((Timestamp) existing.get("occurred_at"))
-                        .toInstant().equals(event.occurredAt())
+                        .toInstant().equals(
+                                event.occurredAt().truncatedTo(
+                                        java.time.temporal.ChronoUnit.MICROS))
                 && event.sourceIp().equals(
                         existing.get("source_ip"))
                 && event.username().equals(

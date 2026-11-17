@@ -78,7 +78,9 @@ public class AuthenticationAlertCommitService {
 
         InboxState state = states.get(0);
 
-        if (!state.occurredAt().equals(event.occurredAt())
+        if (!state.occurredAt().equals(
+                event.occurredAt().truncatedTo(
+                        java.time.temporal.ChronoUnit.MICROS))
                 || !state.sourceIp().equals(event.sourceIp())
                 || !state.username().equals(event.username())
                 || !state.sourceSystem().equals(event.sourceSystem())
@@ -205,7 +207,9 @@ public class AuthenticationAlertCommitService {
 
         InboxState state = states.get(0);
 
-        if (!state.occurredAt().equals(event.occurredAt())
+        if (!state.occurredAt().equals(
+                event.occurredAt().truncatedTo(
+                        java.time.temporal.ChronoUnit.MICROS))
                 || !state.sourceIp().equals(event.sourceIp())
                 || !state.username().equals(event.username())
                 || !state.sourceSystem().equals(event.sourceSystem())

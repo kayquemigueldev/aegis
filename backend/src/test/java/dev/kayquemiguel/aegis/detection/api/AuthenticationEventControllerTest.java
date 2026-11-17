@@ -311,4 +311,40 @@ class AuthenticationEventControllerTest {
         assertEquals(firstResponse, retryResponse);
     }
 
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void shouldAcceptRetryWithNanosecondTimestamp()
+            throws Exception {
+        String sensorId = "test-" + UUID.randomUUID();
+        UUID eventId = UUID.randomUUID();
+
+        Instant occurredAt = Instant.now()
+                .with(
+                        java.time.temporal.ChronoField.NANO_OF_SECOND,
+                        123456789
+                );
+
+        String json = """
+                {
+                  "id": "%s",
+                  "occurredAt": "%s",
+                  "sourceIp": "192.0.2.10",
+                  "username": "admin",
+                  "sourceSystem": "auth-log",
+                  "outcome": "FAILURE"
+                }
+                """.formatted(eventId, occurredAt);
+
+        for (int i = 0; i < 3; i++) {
+            mockMvc.perform(post(
+                            "/api/v1/sensors/{sensorId}/auth-events",
+                            sensorId
+                    )
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(json))
+                    .andExpect(status().isAccepted());
+        }
+    }
+
 }
