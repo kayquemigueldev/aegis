@@ -63,6 +63,11 @@ public class ApiSecurityConfig {
                                         "ANALYST",
                                         "ADMIN"
                                 )
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/api/v1/sensors/*/auth-events"
+                                )
+                                .hasAnyRole("ANALYST", "ADMIN")
                                 .anyRequest()
                                 .denyAll()
                 )

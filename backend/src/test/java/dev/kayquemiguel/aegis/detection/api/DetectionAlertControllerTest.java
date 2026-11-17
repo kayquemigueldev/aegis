@@ -2,6 +2,7 @@
 package dev.kayquemiguel.aegis.detection.api;
 
 import dev.kayquemiguel.aegis.detection.DetectionAlert;
+import dev.kayquemiguel.aegis.detection.AuthenticationDetectionAlert;
 import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertRepository;
 import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertService;
 import org.junit.jupiter.api.Test;
@@ -235,6 +236,137 @@ class DetectionAlertControllerTest {
                         .value("DISTINCT_DESTINATION_PORTS"))
                 .andExpect(jsonPath("$.content[1].observedCount")
                         .value(3));
+    }
+
+
+    private UUID saveAuthenticationAlert(
+            String sensorId
+    ) {
+        AuthenticationDetectionAlert alert =
+                new AuthenticationDetectionAlert(
+                        "NET-003",
+                        BASE,
+                        sensorId,
+                        "auth-log",
+                        "192.0.2.10",
+                        "admin",
+                        5,
+                        5
+                );
+
+        UUID id = service.saveAuthentication(alert);
+        repository.flush();
+        return id;
+    }
+
+    @Test
+    void shouldExposeAuthenticationAlertById()
+            throws Exception {
+        String sensorId = sensor();
+        UUID id = saveAuthenticationAlert(sensorId);
+
+        mockMvc.perform(get("/api/v1/alerts/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ruleId")
+                        .value("NET-003"))
+                .andExpect(jsonPath("$.sensorId")
+                        .value(sensorId))
+                .andExpect(jsonPath("$.metricType")
+                        .value("AUTHENTICATION_FAILURES"))
+                .andExpect(jsonPath("$.observedCount")
+                        .value(5))
+                .andExpect(jsonPath("$.threshold")
+                        .value(5))
+                .andExpect(jsonPath("$.distinctPorts")
+                        .value(0))
+                .andExpect(jsonPath("$.destinationIp")
+                        .value(
+                                org.hamcrest.Matchers.nullValue()
+                        ))
+                .andExpect(jsonPath("$.authUsername")
+                        .value("admin"))
+                .andExpect(jsonPath("$.authSourceSystem")
+                        .value("auth-log"));
+    }
+
+    @Test
+    void shouldFilterAuthenticationAlertsByRule()
+            throws Exception {
+        String sensorId = sensor();
+
+        saveAuthenticationAlert(sensorId);
+        save(sensorId, "NET-001", 10);
+
+        mockMvc.perform(get("/api/v1/alerts")
+                        .param("sensorId", sensorId)
+                        .param("ruleId", "NET-003"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements")
+                        .value(1))
+                .andExpect(jsonPath("$.content[0].ruleId")
+                        .value("NET-003"))
+                .andExpect(jsonPath("$.content[0].authUsername")
+                        .value("admin"))
+                .andExpect(jsonPath("$.content[0].metricType")
+                        .value("AUTHENTICATION_FAILURES"));
+    }
+
+
+    @Test
+    @WithMockUser(authorities = {
+            "ROLE_ANALYST",
+            "SENSOR:sensor-allowed"
+    })
+    void shouldAllowAnalystToReadAuthorizedAuthenticationAlerts()
+            throws Exception {
+        String sensorId = "sensor-allowed";
+
+        UUID id = saveAuthenticationAlert(sensorId);
+
+        mockMvc.perform(get("/api/v1/alerts/{id}", id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ruleId")
+                        .value("NET-003"))
+                .andExpect(jsonPath("$.sensorId")
+                        .value(sensorId))
+                .andExpect(jsonPath("$.authUsername")
+                        .value("admin"));
+
+        mockMvc.perform(get("/api/v1/alerts")
+                        .param("sensorId", sensorId)
+                        .param("ruleId", "NET-003"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements")
+                        .value(1));
+    }
+
+    @Test
+    @WithMockUser(authorities = {
+            "ROLE_ANALYST",
+            "SENSOR:sensor-allowed"
+    })
+    void shouldPreventAnalystFromReadingOtherSensorAuthenticationAlerts()
+            throws Exception {
+        UUID id = saveAuthenticationAlert("sensor-denied");
+
+        // Consulta direta nao revela o alerta.
+        mockMvc.perform(get("/api/v1/alerts/{id}", id))
+                .andExpect(status().isNotFound());
+
+        // Filtrar explicitamente um sensor proibido
+        // deve retornar acesso negado.
+        mockMvc.perform(get("/api/v1/alerts")
+                        .param("sensorId", "sensor-denied")
+                        .param("ruleId", "NET-003"))
+                .andExpect(status().isForbidden());
+
+        // Consulta global do analista deve respeitar
+        // somente os sensores permitidos.
+        mockMvc.perform(get("/api/v1/alerts")
+                        .param("ruleId", "NET-003"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements")
+                        .value(0));
     }
 
 }

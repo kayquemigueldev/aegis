@@ -2,6 +2,7 @@
 package dev.kayquemiguel.aegis.detection.persistence;
 
 import dev.kayquemiguel.aegis.detection.DetectionAlert;
+import dev.kayquemiguel.aegis.detection.AuthenticationDetectionAlert;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -28,8 +29,14 @@ public class DetectionAlertEntity {
     @Column(name = "source_ip", nullable = false, length = 45)
     private String sourceIp;
 
-    @Column(name = "destination_ip", nullable = false, length = 45)
+    @Column(name = "destination_ip", length = 45)
     private String destinationIp;
+
+    @Column(name = "auth_username", length = 256)
+    private String authUsername;
+
+    @Column(name = "auth_source_system", length = 128)
+    private String authSourceSystem;
 
     @Column(name = "detected_at", nullable = false)
     private Instant detectedAt;
@@ -89,7 +96,63 @@ public class DetectionAlertEntity {
         );
     }
 
+    public static DetectionAlertEntity from(
+            AuthenticationDetectionAlert alert
+    ) {
+        Objects.requireNonNull(alert, "alert is required");
+
+        if (!"NET-003".equals(alert.ruleId())) {
+            throw new IllegalArgumentException(
+                    "Expected NET-003 authentication alert"
+            );
+        }
+
+        if (alert.observedCount() < 1
+                || alert.threshold() < 1) {
+            throw new IllegalArgumentException(
+                    "Authentication counts must be positive"
+            );
+        }
+
+        if (alert.username() == null
+                || alert.username().isBlank()
+                || alert.username().length() > 256
+                || alert.sourceSystem() == null
+                || alert.sourceSystem().isBlank()
+                || alert.sourceSystem().length() > 128) {
+            throw new IllegalArgumentException(
+                    "Invalid authentication metadata"
+            );
+        }
+
+        DetectionAlertEntity entity =
+                new DetectionAlertEntity();
+
+        entity.id = UUID.randomUUID();
+        entity.ruleId = alert.ruleId();
+        entity.sensorId = alert.sensorId();
+        entity.sourceIp = alert.sourceIp();
+        entity.destinationIp = null;
+        entity.detectedAt = alert.detectedAt();
+        entity.distinctPorts = 0;
+        entity.metricType = "AUTHENTICATION_FAILURES";
+        entity.observedCount = alert.observedCount();
+        entity.detectionThreshold = alert.threshold();
+        entity.description =
+                "Repeated authentication failures";
+        entity.authUsername = alert.username();
+        entity.authSourceSystem = alert.sourceSystem();
+
+        return entity;
+    }
+
     public DetectionAlert toDomain() {
+        if ("NET-003".equals(ruleId)) {
+            throw new IllegalStateException(
+                    "NET-003 requires authentication alert mapping"
+            );
+        }
+
         return new DetectionAlert(
                 ruleId,
                 sourceIp,
@@ -102,6 +165,34 @@ public class DetectionAlertEntity {
                 dev.kayquemiguel.aegis.detection.DetectionMetricType
                         .valueOf(metricType)
         );
+    }
+
+    public AuthenticationDetectionAlert
+    toAuthenticationDomain() {
+        if (!"NET-003".equals(ruleId)) {
+            throw new IllegalStateException(
+                    "Not an authentication alert"
+            );
+        }
+
+        return new AuthenticationDetectionAlert(
+                ruleId,
+                detectedAt,
+                sensorId,
+                authSourceSystem,
+                sourceIp,
+                authUsername,
+                observedCount,
+                detectionThreshold
+        );
+    }
+
+    public String getAuthUsername() {
+        return authUsername;
+    }
+
+    public String getAuthSourceSystem() {
+        return authSourceSystem;
     }
 
     public UUID getId() {

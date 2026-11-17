@@ -2,6 +2,7 @@
 package dev.kayquemiguel.aegis.detection.persistence;
 
 import dev.kayquemiguel.aegis.detection.DetectionAlert;
+import dev.kayquemiguel.aegis.detection.AuthenticationDetectionAlert;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +31,26 @@ public class DetectionAlertService {
         return repository.save(entity).getId();
     }
 
+    @Transactional
+    public UUID saveAuthentication(AuthenticationDetectionAlert alert) {
+        Objects.requireNonNull(alert, "alert is required");
+
+        DetectionAlertEntity entity =
+                DetectionAlertEntity.from(alert);
+
+        return repository.save(entity).getId();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AuthenticationDetectionAlert>
+    findAuthenticationByRule() {
+        return repository
+                .findByRuleIdOrderByDetectedAtDesc("NET-003")
+                .stream()
+                .map(DetectionAlertEntity::toAuthenticationDomain)
+                .toList();
+    }
+
     @Transactional(readOnly = true)
     public List<DetectionAlert> findBySensor(
             String sensorId
@@ -45,6 +66,9 @@ public class DetectionAlertService {
                         sensorId.trim()
                 )
                 .stream()
+                .filter(entity ->
+                        !"NET-003".equals(entity.getRuleId())
+                )
                 .map(DetectionAlertEntity::toDomain)
                 .toList();
     }
@@ -56,6 +80,12 @@ public class DetectionAlertService {
         if (ruleId == null || ruleId.isBlank()) {
             throw new IllegalArgumentException(
                     "ruleId is required"
+            );
+        }
+
+        if ("NET-003".equals(ruleId.trim())) {
+            throw new IllegalArgumentException(
+                    "Use findAuthenticationByRule for NET-003"
             );
         }
 

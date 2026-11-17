@@ -18,7 +18,9 @@ public record DetectionAlertResponse(
         String description,
         Instant createdAt,
         String metricType,
-        int observedCount
+        int observedCount,
+        String authUsername,
+        String authSourceSystem
 ) {
     public static DetectionAlertResponse from(
             DetectionAlertEntity entity
@@ -35,7 +37,9 @@ public record DetectionAlertResponse(
                 entity.getDescription(),
                 entity.getCreatedAt(),
                 entity.getMetricType(),
-                entity.getObservedCount()
+                entity.getObservedCount(),
+                entity.getAuthUsername(),
+                entity.getAuthSourceSystem()
         );
     }
 }
