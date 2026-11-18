@@ -27,6 +27,7 @@ public class DurableAuthenticationProcessor {
 
 
     private static final int PAGE_SIZE = 500;
+    private static final int RECOVERY_BATCH_SIZE = 500;
 
     // Constant, application-wide PostgreSQL advisory lock.
     private static final long PROCESSING_LOCK = 4101003L;
@@ -55,7 +56,7 @@ public class DurableAuthenticationProcessor {
         // Duplicates are validated against their original payload.
         inbox.record(incoming);
 
-        replayAndAcknowledge(earliestPending());
+        replayAndAcknowledge(earliestPending(), Integer.MAX_VALUE);
 
         List<UUID> ids = jdbc.query(
                 """
@@ -79,21 +80,10 @@ public class DurableAuthenticationProcessor {
     public int recoverPending() {
         acquireProcessingLock();
 
-        Integer pending = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM auth_event_inbox "
-                + "WHERE processed = FALSE",
-                Integer.class
+        return replayAndAcknowledge(
+                earliestPending(),
+                RECOVERY_BATCH_SIZE
         );
-
-        int count = Objects.requireNonNull(pending);
-
-        if (count == 0) {
-            return 0;
-        }
-
-        replayAndAcknowledge(earliestPending());
-
-        return count;
     }
 
     private void acquireProcessingLock() {
@@ -115,15 +105,18 @@ public class DurableAuthenticationProcessor {
         return timestamp == null ? null : timestamp.toInstant();
     }
 
-    private void replayAndAcknowledge(Instant earliestPending) {
+    private int replayAndAcknowledge(
+            Instant earliestPending,
+            int maxAcknowledged
+    ) {
         if (earliestPending == null) {
-            return;
+            return 0;
         }
 
         long startedAt = System.nanoTime();
         int pagesScanned = 0;
         long eventsScanned = 0;
-        long eventsAcknowledged = 0;
+        int eventsAcknowledged = 0;
 
         Instant lowerBound = earliestPending.minus(
                 Duration.ofMinutes(10)
@@ -173,9 +166,14 @@ public class DurableAuthenticationProcessor {
                 cursorTime = event.ingestedAt();
                 cursorSensor = event.sensorId();
                 cursorEvent = event.id();
+
+                if (eventsAcknowledged >= maxAcknowledged) {
+                    break;
+                }
             }
 
-            if (page.size() < PAGE_SIZE) {
+            if (eventsAcknowledged >= maxAcknowledged
+                    || page.size() < PAGE_SIZE) {
                 break;
             }
         }
@@ -192,6 +190,8 @@ public class DurableAuthenticationProcessor {
                 eventsAcknowledged,
                 elapsedMillis
         );
+
+        return eventsAcknowledged;
     }
 
 }

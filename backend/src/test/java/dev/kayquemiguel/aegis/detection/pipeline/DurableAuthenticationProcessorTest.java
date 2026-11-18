@@ -577,4 +577,63 @@ class DurableAuthenticationProcessorTest {
         assertEquals(120, recovery.timeout());
     }
 
+
+    @Test
+    void shouldRecoverBacklogInSeparateTransactions() {
+        String sensorId = sensor();
+        Instant base = Instant.parse("2046-01-01T10:00:00Z");
+
+        var inbox = new dev.kayquemiguel.aegis.detection
+                .persistence.AuthenticationEventInbox(jdbc);
+
+        for (int i = 0; i < 503; i++) {
+            boolean failed = i >= 498;
+
+            AuthenticationEvent event = new AuthenticationEvent(
+                    UUID.randomUUID(),
+                    base.plusSeconds(failed ? i - 497 : 0),
+                    base.plusSeconds(failed ? i - 497 : 0),
+                    "192.0.2.55",
+                    "batch-user",
+                    "batch-test",
+                    sensorId,
+                    failed
+                        ? AuthenticationOutcome.FAILURE
+                        : AuthenticationOutcome.SUCCESS
+            );
+
+            assertTrue(inbox.record(event));
+        }
+
+        assertEquals(500, processor.recoverPending());
+
+        Integer remaining = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM auth_event_inbox "
+                    + "WHERE sensor_id = ? AND processed = FALSE",
+                Integer.class,
+                sensorId
+        );
+        assertEquals(3, remaining);
+
+        assertEquals(3, processor.recoverPending());
+        assertEquals(0, processor.recoverPending());
+
+        Integer pending = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM auth_event_inbox "
+                    + "WHERE sensor_id = ? AND processed = FALSE",
+                Integer.class,
+                sensorId
+        );
+
+        Integer alerts = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM detection_alerts "
+                    + "WHERE sensor_id = ? AND rule_id = 'NET-003'",
+                Integer.class,
+                sensorId
+        );
+
+        assertEquals(0, pending);
+        assertEquals(1, alerts);
+    }
+
 }
