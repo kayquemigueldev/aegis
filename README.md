@@ -23,7 +23,10 @@ detecting suspicious behavior, and supporting investigations.
 
 - Suricata EVE JSONL ingestion
 - Network flow normalization
-- NET-001: Possible port scan detection
+- NET-001: Possible TCP port scan detection
+- NET-002: Horizontal port scan detection
+- Generic DetectionRule interface, registry and engine
+- Authentication failure detector (identifier under review)
 - Detection alert persistence
 - Import deduplication and failure recovery
 - Database-backed authentication
@@ -32,6 +35,32 @@ detecting suspicious behavior, and supporting investigations.
 - Administrative user management
 - Transactional security audit logging
 - REST API for querying detection alerts
+
+## Development governance
+
+The official Master Roadmap v1.0 contains 364 tasks.
+Roadmap IDs must never be reused for unrelated features.
+
+Current planning documents:
+
+- [Product vision](docs/product/vision.md)
+- [Feature scope](docs/product/feature-scope.md)
+- [Use cases](docs/product/use-cases.md)
+- [Functional requirements](docs/requirements/functional.md)
+- [Non-functional requirements](docs/requirements/non-functional.md)
+- [Traceability](docs/requirements/traceability.md)
+- [Versioning](docs/project/versioning.md)
+- [Backlog](docs/project/backlog.md)
+- [Success metrics](docs/project/success-metrics.md)
+- [Risk register](docs/project/risk-register.md)
+
+The authentication detector currently uses NET-003,
+which conflicts with the original roadmap definition.
+The identifier requires a compatibility-safe correction.
+
+A documentation file does not prove a roadmap task
+has been completed. Implementation, tests and evidence
+are required before closing the task.
 
 ## Requirements
 

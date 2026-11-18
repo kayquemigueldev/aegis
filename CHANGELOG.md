@@ -11,11 +11,15 @@ No stable release has been published.
 
 - Java 21 and Spring Boot backend.
 - PostgreSQL 17 integration using Docker Compose.
-- Flyway database migrations V1 through V5.
+- Flyway database migrations V1 through V10.
 - Immutable network event model.
 - Suricata EVE JSONL flow ingestion.
 - Network event validation and normalization.
 - NET-001 possible TCP port scan detection.
+- NET-002 horizontal port scan detection.
+- DetectionRule interface, registry and engine.
+- Authentication failure detection and durable inbox.
+- Authentication replay recovery and idempotent alerts.
 - Detection alert persistence and query API.
 - Import deduplication using SHA-256 and sensor ID.
 - Tests for import failures and recovery.
@@ -30,14 +34,19 @@ No stable release has been published.
 ### Documentation
 
 - Initial project README.
-- Product vision and architecture documentation
-  planned for Sprint 022.
-- Backend CI workflow planned for Sprint 022.
+- Product vision and architecture overview.
+- ADR-0001 establishing the modular monolith.
+- Backend CI workflow running Java 21 and PostgreSQL 17.
+- Sprint 056: product scope, use cases, requirements,
+  traceability, versioning, risk register and backlog.
 
 ### Known Limitations
 
-- Generic detection rule engine is not yet implemented.
-- Only NET-001 detection is available.
+- Generic rule engine exists, but advanced execution
+  controls and versioned rule runs remain incomplete.
+- Authentication detection currently uses NET-003,
+  conflicting with the original roadmap definition.
+  Identifier migration must preserve persisted history.
 - Zeek ingestion is not yet supported.
 - React/TypeScript console is not implemented.
 - Investigation workflows remain planned.
