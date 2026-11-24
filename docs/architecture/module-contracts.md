@@ -161,7 +161,7 @@ que todas as dependências atuais a respeitem.
 - [x] Contratos existentes identificados.
 - [x] Direções permitidas registradas.
 - [ ] Dependências completas revisadas.
-- [ ] Regras arquiteturais automatizadas em testes Java.
+- [x] Regras arquiteturais iniciais automatizadas em testes Java (ArchUnit).
 - [ ] Contratos confirmados por testes de integração.
 - [ ] Revisão final e fechamento da issue no GitHub.
 

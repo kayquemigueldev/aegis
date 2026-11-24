@@ -89,3 +89,26 @@ Before closing a roadmap task:
 - Criacao confirmada em 24/11/2026.
 - AEGIS-010: criterios de backlog inicial atendidos.
 - As demais tarefas permanecem sujeitas a auditoria.
+
+## Sprint 057 — Revisao de arquitetura
+
+Revisao: `docs/architecture/sprint-057-review.md`.
+
+| Roadmap | Estado | Evidencia |
+|---|---|---|
+| AEGIS-014 | PARCIAL | 5285e75 |
+| AEGIS-015 | PARCIAL | 40d1caa; 2c98415 |
+| AEGIS-016 | PARCIAL | fbd4731 |
+| AEGIS-017 | PARCIAL | fbd4731 |
+| AEGIS-018 | PARCIAL | fbd4731 |
+| AEGIS-019 | PARCIAL | 533da45 |
+| AEGIS-020 | PARCIAL | 533da45; 0ea36fa |
+| AEGIS-021 | PARCIAL | 0ea36fa |
+| AEGIS-022 | PARCIAL | 0ea36fa |
+| AEGIS-023 | PARCIAL | 0ea36fa |
+| AEGIS-024 | PARCIAL | 0ea36fa |
+
+Nenhuma tarefa deste bloco foi automaticamente
+encerrada. As limitacoes e proximas verificacoes
+estao documentadas no relatorio da sprint.
+
