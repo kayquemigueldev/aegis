@@ -111,4 +111,3 @@ Revisao: `docs/architecture/sprint-057-review.md`.
 Nenhuma tarefa deste bloco foi automaticamente
 encerrada. As limitacoes e proximas verificacoes
 estao documentadas no relatorio da sprint.
-
