@@ -16,8 +16,8 @@ Total Java files: **50**
 |---|---|
 | detection | 33 |
 | domain | 5 |
-| external | 1 |
 | ingestion | 3 |
+| root | 1 |
 | security | 8 |
 
 ## Cross-module imports
@@ -39,7 +39,6 @@ Observations are not automatically violations.
 
 | Location | Observation |
 |---|---|
-| backend/src/main/java/dev/kayquemiguel/aegis/AegisApplication.java | Package/directory mismatch |
 | detection/api | REST interfaces reside inside detection module |
 | detection/persistence | Persistence adapters reside inside detection module |
 | security | Security API, application and infrastructure classes share one package tree |

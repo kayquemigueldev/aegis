@@ -51,11 +51,17 @@ FORBIDDEN = {
 }
 
 def module_of(package):
-    root = "dev.kayquemiguel.aegis."
-    if not package.startswith(root):
+    base = "dev.kayquemiguel.aegis"
+
+    if package == base:
+        return "root"
+
+    prefix = base + "."
+
+    if not package.startswith(prefix):
         return "external"
 
-    suffix = package[len(root):]
+    suffix = package[len(prefix):]
     return suffix.split(".", 1)[0]
 
 
