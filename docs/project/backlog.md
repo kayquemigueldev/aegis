@@ -111,3 +111,15 @@ Revisao: `docs/architecture/sprint-057-review.md`.
 Nenhuma tarefa deste bloco foi automaticamente
 encerrada. As limitacoes e proximas verificacoes
 estao documentadas no relatorio da sprint.
+
+## Sprint 058 — Infrastructure evidence review
+
+Review: `docs/infrastructure/sprint-058-review.md`.
+
+- AEGIS-025 to AEGIS-038 audited.
+- CI success confirmed for commit `55b0f6c`.
+- Isolated PostgreSQL test completed successfully.
+- AEGIS-033 corrected to development/test profiles.
+- Remaining acceptance limitations documented.
+- No issues automatically closed.
+

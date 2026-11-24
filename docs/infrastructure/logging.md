@@ -1,6 +1,6 @@
 # AEGIS — Logging Baseline
 
-Roadmap: AEGIS-033.
+Related roadmap: AEGIS-020 (observability).
 Status: partial.
 
 ## Implemented
