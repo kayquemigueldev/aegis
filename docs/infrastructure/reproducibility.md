@@ -18,3 +18,33 @@ Status: verification pending.
 
 Never delete the existing development database
 or execute docker compose down -v against it.
+
+## Verified isolated execution
+
+Date: 2026-11-24
+
+Environment:
+- Fresh independent Git working copy.
+- Separate Docker Compose project.
+- PostgreSQL 17.11 on localhost port 55434.
+- Dedicated Docker volume.
+- Java 21 and Maven Wrapper.
+
+Results:
+- PostgreSQL container reached healthy state.
+- Flyway applied migrations V1 through V10
+  to a previously empty schema.
+- Maven clean verify completed successfully.
+- 313 tests passed.
+- 0 failures, 0 errors, 0 skipped.
+- Executable Spring Boot JAR was generated.
+
+Limitations:
+- Dependencies used the existing Mac's Maven cache.
+- No separate HTTP server smoke test was performed.
+- A second operating system was not tested.
+- GitHub Actions success requires separate confirmation.
+
+Acceptance:
+AEGIS-038 has a successful isolated local integration
+test. Full formal acceptance remains pending.
