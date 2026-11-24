@@ -122,4 +122,3 @@ Review: `docs/infrastructure/sprint-058-review.md`.
 - AEGIS-033 corrected to development/test profiles.
 - Remaining acceptance limitations documented.
 - No issues automatically closed.
-
