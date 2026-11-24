@@ -124,6 +124,19 @@ Main areas:
 
 See docs/architecture/overview.md.
 
+## Development operations
+
+- [Architecture](docs/architecture/overview.md)
+- [Logging](docs/infrastructure/logging.md)
+- [Dependency security](docs/infrastructure/dependency-security.md)
+- [Reproducibility](docs/infrastructure/reproducibility.md)
+- [Changelog](CHANGELOG.md)
+
+Run verification with PostgreSQL configured:
+
+    cd backend
+    ./mvnw --batch-mode clean verify
+
 ## Security
 
 AEGIS is intended for authorized environments.
