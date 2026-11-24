@@ -1,242 +1,111 @@
-# AEGIS - Architecture Overview
+# AEGIS — Architecture Overview
 
-## Architectural Style
+## Architectural style
 
-AEGIS follows a modular monolith architecture.
+AEGIS currently follows a modular monolith model,
+documented in ADR-0001.
 
-The backend uses Java 21 and Spring Boot 4.1.2.
+Technology baseline:
+- Java 21 and Spring Boot 4.1.2
+- Maven and JUnit
+- PostgreSQL 17
+- Flyway
+- Docker Compose
+- Spring Security
+- ArchUnit
 
-The architecture prioritizes:
+## Current components
 
-- Separation of responsibilities
-- Testability
-- Security
-- Maintainability
-- Extensibility
-- Reproducible detection behavior
+| Module | Responsibilities |
+|---|---|
+| domain.event | Network and authentication events |
+| ingestion.suricata | JSONL parsing and normalization |
+| detection | Rules, registry, engine and alerts |
+| detection.pipeline | Import, processing and recovery |
+| detection.persistence | Alert persistence and inbox |
+| detection.api | Protected alert and ingestion APIs |
+| security | Authentication, authorization, administration |
+| observability | Correlation IDs and HTTP error responses |
 
-## Main Components
+A single module may contain application and
+infrastructure responsibilities today. Additional
+separation remains a roadmap activity.
 
-### 1. Domain
+## Detection rules
 
-Package:
+Current network detection capabilities include:
+- NET-001: possible port scan
+- NET-002: horizontal port scan
 
-dev.kayquemiguel.aegis.domain.event
+The existing authentication failure detector uses
+NET-003 in the code. This conflicts with the official
+roadmap, which reserves NET-003 for anomalous
+unsuccessful network connections.
 
-Main classes:
+Do not silently rename historical rule IDs.
 
-- NetworkEvent
-- NetworkProtocol
-- FlowMetadata
+`DetectionRule`, `DetectionRuleRegistry`,
+`DetectionEngine` and `DetectionEngineFactory`
+already exist.
 
-Responsibilities:
+## Processing
 
-- Represent normalized network telemetry
-- Validate essential event fields
-- Preserve source and sensor identification
-- Model immutable network events
+Suricata ingestion uses JSONL parsing, validated
+network events, import deduplication and alert
+persistence.
 
-### 2. Ingestion
+Authentication-event ingestion has separate
+processing and durable recovery mechanisms.
 
-Package:
+See `diagrams.md` for component and flow diagrams.
 
-dev.kayquemiguel.aegis.ingestion.suricata
+## Persistence
 
-Main classes:
+PostgreSQL 17 with Flyway migrations V1 through V10.
 
-- SuricataFlowParser
-- SuricataJsonlImporter
-- ImportReport
+Migration coverage includes schema metadata,
+alerts, imports, security, audit logging, metrics,
+authentication events and idempotency support.
 
-Responsibilities:
+Existing migrations must never be rewritten after
+application to shared or persistent databases.
 
-- Read Suricata EVE JSONL
-- Parse supported flow records
-- Validate event formats
-- Reject invalid records
-- Report import results
+## API and security
 
-### 3. Detection
+Spring Security protects alert queries,
+authentication-event ingestion and admin endpoints.
 
-Package:
+Authorization uses roles and sensor access controls.
 
-dev.kayquemiguel.aegis.detection
+The observability module provides:
+- X-Correlation-ID headers
+- SLF4J MDC correlation context
+- Standardized responses for selected MVC errors
 
-Main classes:
+Authentication failures are handled by Spring
+Security and currently preserve their HTTP status.
 
-- PossiblePortScanDetector
-- DetectionAlert
+## Known limitations
 
-Responsibilities:
-
-- Analyze normalized events
-- Detect suspicious network behavior
-- Apply time-based detection logic
-- Generate explainable detection alerts
-
-Current detection rule:
-
-NET-001 - Possible TCP Port Scan
-
-Future:
-
-- Generic DetectionRule interface
-- Central detection rule registry
-- Configurable detection parameters
-- Multiple independent detection rules
-- Detection-as-Code
-
-### 4. Processing Pipeline
-
-Package:
-
-dev.kayquemiguel.aegis.detection.pipeline
-
-Main classes:
-
-- SuricataDetectionPipeline
-- ImportRunRepository
-- VerifiedImportSnapshot
-- SuricataImportRunner
-
-Responsibilities:
-
-- Coordinate event ingestion and detection
-- Validate imported file snapshots
-- Prevent duplicate import processing
-- Persist import reports
-- Coordinate alert persistence
-
-### 5. Persistence
-
-Database:
-
-PostgreSQL 17
-
-Migration system:
-
-Flyway
-
-Existing migrations:
-
-- V1 - Schema metadata
-- V2 - Detection alerts
-- V3 - Import runs
-- V4 - Security users
-- V5 - Security audit log
-
-Responsibilities:
-
-- Persist detection alerts
-- Track imported files
-- Store security users and permissions
-- Store administrative audit records
-
-### 6. Security
-
-Package:
-
-dev.kayquemiguel.aegis.security
-
-Main components:
-
-- ApiSecurityConfig
-- DatabaseUserDetailsService
-- SensorAccessPolicy
-- AdminUserService
-- SecurityAuditService
-- SecurityAuditController
-
-Responsibilities:
-
-- Authenticate API users
-- Enforce ADMIN and ANALYST roles
-- Restrict access by sensor
-- Manage administrative operations
-- Audit sensitive administrative actions
-
-### 7. REST API
-
-Current API capabilities:
-
-- Detection alert queries
-- Detection alert details
-- Administrative user management
-- Administrative security audit queries
-
-The API is protected by Spring Security.
-
-## Current Data Flow
-
-Authorized Suricata EVE JSONL
-            |
-            v
-SuricataJsonlImporter
-            |
-            v
-SuricataFlowParser
-            |
-            v
-NetworkEvent
-            |
-            v
-PossiblePortScanDetector
-            |
-            v
-DetectionAlert
-            |
-            v
-PostgreSQL
-            |
-            v
-Secured REST API
-
-## Future Frontend Architecture
-
-Planned technologies:
-
-- React
-- TypeScript
-- Vite
-
-Planned modules:
-
-- Security Overview
-- Event Explorer
-- Detection Center
-- Alert Workspace
-- Investigations
-- Sensor Management
-- Administration
-- Security Audit
-
-The frontend will communicate with the
-Spring Boot backend through secured REST APIs.
-
-## Current Limitations
-
-- The detection pipeline currently uses NET-001.
-- A generic detection rule registry is pending.
-- Out-of-order detection is not fully supported.
+- Durable source-event evidence linkage is incomplete.
+- Versioned rule-execution metadata is incomplete.
+- NET-003 identifier reconciliation is pending.
 - Zeek ingestion is not implemented.
-- Full event evidence persistence is pending.
-- The web console is not implemented.
-- Production security hardening remains pending.
+- A full web console is not implemented.
+- Correlation propagation to async tasks is pending.
+- Production hardening is not complete.
 
-## Architectural Principles
+## Architecture documentation
 
-1. Keep the domain independent of HTTP interfaces.
-2. Avoid unnecessary distributed complexity.
-3. Validate untrusted telemetry.
-4. Maintain explicit authorization boundaries.
-5. Preserve detection traceability.
-6. Prefer deterministic and testable algorithms.
-7. Document significant architectural decisions.
+- `module-contracts.md`
+- `domain-contracts.md`
+- `audit-baseline.md`
+- `diagrams.md`
+- `configuration-contracts.md`
+- `extensibility.md`
+- `adr/0001-modular-monolith.md`
+- `adr/0002-durable-detection-processing.md`
+- `adr/0003-http-correlation.md`
 
-## Architecture Decision Records
-
-Significant architectural decisions are documented
-in docs/architecture/adr/.
-
-The first decision is ADR-0001,
-which establishes the modular monolith approach.
+Roadmap AEGIS-021 to AEGIS-024 remains subject to
+final acceptance review.
