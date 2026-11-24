@@ -10,13 +10,14 @@ of those roadmap tasks.
 
 ## Inventory
 
-Total Java files: **50**
+Total Java files: **53**
 
 | Module | Java files |
 |---|---|
 | detection | 33 |
 | domain | 5 |
 | ingestion | 3 |
+| observability | 3 |
 | root | 1 |
 | security | 8 |
 

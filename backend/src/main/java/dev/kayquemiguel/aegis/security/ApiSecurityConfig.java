@@ -1,6 +1,9 @@
 
 package dev.kayquemiguel.aegis.security;
 
+import dev.kayquemiguel.aegis.observability.CorrelationIdFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
@@ -36,10 +39,15 @@ public class ApiSecurityConfig {
 
     @Bean
     SecurityFilterChain apiSecurityFilterChain(
-            HttpSecurity http
+            HttpSecurity http,
+            CorrelationIdFilter correlationIdFilter
     ) throws Exception {
 
         return http
+                .addFilterBefore(
+                        correlationIdFilter,
+                        BasicAuthenticationFilter.class
+                )
                 .csrf(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(Customizer.withDefaults())
@@ -72,6 +80,21 @@ public class ApiSecurityConfig {
                                 .denyAll()
                 )
                 .build();
+    }
+
+    @Bean
+    FilterRegistrationBean<CorrelationIdFilter>
+    correlationIdServletRegistration(
+            CorrelationIdFilter filter
+    ) {
+        FilterRegistrationBean<CorrelationIdFilter>
+                registration =
+                new FilterRegistrationBean<>(filter);
+
+        // Executado pela cadeia Spring Security,
+        // evitando registro servlet duplicado.
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
