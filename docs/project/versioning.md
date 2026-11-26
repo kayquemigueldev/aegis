@@ -29,3 +29,44 @@ Formato: SemVer — MAJOR.MINOR.PATCH.
 
 Estado atual: desenvolvimento; release v0.1.0
 ainda não auditada como concluída.
+
+## Release workflow
+
+Roadmap: AEGIS-037.
+
+1. Select a version based on the roadmap
+   and semantic versioning policy.
+2. Verify the intended release scope and
+   acceptance criteria.
+3. Run the automated tests and review CI.
+4. Review migrations, configuration changes,
+   compatibility and known limitations.
+5. Review dependency security findings.
+6. Update CHANGELOG.md: move relevant entries
+   from Unreleased to the versioned section.
+7. Record the release date and known limitations.
+8. Create the Git tag and GitHub release only
+   after the validation evidence is approved.
+9. Preserve links to the release commit,
+   checks and documented evidence.
+
+Release candidate versions must be explicitly
+distinguished from stable releases.
+
+Do not publish releases automatically as part
+of this documentation task.
+
+## AEGIS-037 acceptance evidence
+
+Date: 2026-11-26.
+
+Artifacts:
+- CHANGELOG.md
+- docs/project/versioning.md
+- docs/project/backlog.md
+
+Scope: documented changelog maintenance and
+release procedure for future versions.
+
+Limitation: no new release or Git tag was
+created or validated in this task.

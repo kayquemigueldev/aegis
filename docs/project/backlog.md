@@ -208,3 +208,21 @@ Acceptance:
 - Backend CI and OSV-Scanner passed on `f35d4f4`.
 - Technical acceptance documented in the backlog.
 - Formal GitHub issue closure to follow.
+
+## AEGIS-037 — Release policy acceptance
+
+Estado: CONCLUIDO — documentacao de release.
+
+Evidence:
+- `CHANGELOG.md`
+- `docs/project/versioning.md`
+- Release preparation and validation procedure
+- Changelog maintenance rules
+- Current Unreleased changes preserved
+- No unverified release declared
+
+Limitations:
+- Actual release validation is a separate task.
+- No version tag is created by this acceptance.
+
+Formal GitHub issue closure pending.

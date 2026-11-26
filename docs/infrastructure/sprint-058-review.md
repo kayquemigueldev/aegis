@@ -20,7 +20,7 @@ It does not automatically mean CONCLUIDO.
 | AEGIS-034 | VALIDADO | GitHub Actions run 45332254042 |
 | AEGIS-035 | PARCIAL | Dependabot configured; vulnerability analysis pending |
 | AEGIS-036 | VALIDADO | README, isolated setup, 318 tests, HTTP 401/200 |
-| AEGIS-037 | PARCIAL | Changelog and versioning policy exist |
+| AEGIS-037 | VALIDADO | Changelog and release workflow documented |
 | AEGIS-038 | PARCIAL | Isolated test passed; full acceptance pending |
 
 ## CI evidence
@@ -66,3 +66,16 @@ Backlog acceptance: CONCLUIDO.
 AEGIS-038 remains PARCIAL because full
 second-machine and cold-cache reproducibility
 has not been verified.
+
+## AEGIS-037 — Release documentation review
+
+Date: 2026-11-26.
+
+- Changelog structure reviewed.
+- Unreleased section preserved.
+- SemVer policy documented.
+- Release validation workflow documented.
+- No fictitious release or tag created.
+
+Assessment: VALIDADO.
+Backlog acceptance: CONCLUIDO.

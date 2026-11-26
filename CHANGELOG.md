@@ -71,3 +71,21 @@ Commit: 97e0dbf
 - Established the foundation for security auditing.
 
 Commit: b94c659
+
+## Changelog maintenance
+
+Roadmap: AEGIS-037.
+
+- Record notable changes under `Unreleased`.
+- Group changes by Added, Changed, Fixed,
+  Security and Removed when applicable.
+- Describe changes from a user or operator
+  perspective rather than copying commit logs.
+- At release time, move applicable entries
+  into a dated version section.
+- Preserve the history of earlier releases.
+- Never claim a release exists solely because
+  its target version appears in the roadmap.
+
+The current changelog describes development
+work. No stable release is declared.
