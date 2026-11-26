@@ -48,3 +48,43 @@ Limitations:
 Acceptance:
 AEGIS-038 has a successful isolated local integration
 test. Full formal acceptance remains pending.
+
+## Isolated HTTP smoke test — 2026-11-26
+
+Source commit: `7566c76`.
+
+Environment:
+- Independent Git clone in `/tmp`.
+- Java 21.0.2.
+- Docker 29.7.2.
+- Docker Compose 5.5.0 available.
+- PostgreSQL 17-alpine in a dedicated container.
+- Isolated PostgreSQL port: 55435.
+- Isolated backend port: 18081.
+- Separate Docker volume.
+
+Verification:
+- Independent clone: PASS.
+- PostgreSQL readiness: PASS.
+- Flyway and Maven clean verify: PASS.
+- 318 tests, 0 failures, 0 errors, 0 skipped.
+- Spring Boot application startup: PASS.
+- Unauthenticated GET /api/v1/alerts: HTTP 401.
+- Temporary container stopped after execution.
+- Original development containers left untouched.
+
+Evidence logs:
+`/tmp/aegis-readme-036.7a2I5B`
+
+Limitations:
+- Used existing host Maven dependency cache.
+- Only macOS was tested locally.
+- HTTP 401 confirms unauthenticated access denial,
+  not successful authenticated API access.
+- Dedicated Docker volume was preserved for inspection.
+- Full second-machine reproducibility remains unverified.
+
+Related roadmap:
+- AEGIS-036: installation guide acceptance review.
+- AEGIS-038: reproducibility evidence.
+

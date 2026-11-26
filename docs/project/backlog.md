@@ -160,3 +160,23 @@ Pending:
 - Record final acceptance evidence
 
 The issue remains open until validation completes.
+
+## AEGIS-036/038 — Isolated smoke test evidence
+
+Date: 2026-11-26.
+
+AEGIS-036: PARCIAL — isolated installation smoke test
+passed; final README acceptance review pending.
+
+AEGIS-038: PARCIAL — independent clone, PostgreSQL,
+318 tests and HTTP startup validated. Maven cache
+and second-machine limitations remain.
+
+Evidence:
+- `docs/infrastructure/reproducibility.md`
+- Commit tested: `7566c76`
+- HTTP 401 on protected endpoint
+- Original Docker services preserved
+
+No GitHub issues automatically closed.
+
