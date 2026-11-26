@@ -142,3 +142,21 @@ Acceptance:
 - Technical acceptance recorded on 2026-11-26.
 
 Ongoing: monitor and triage future security findings.
+
+## AEGIS-036 — README installation review
+
+Estado: PARCIAL.
+
+Evidence:
+- README installation and execution guide
+- Java 21 and PostgreSQL 17 prerequisites
+- Development and test profile instructions
+- Database configuration and troubleshooting
+- Local Markdown link validation
+
+Pending:
+- Verify all instructions in a fresh environment
+- Confirm startup and authenticated API access
+- Record final acceptance evidence
+
+The issue remains open until validation completes.

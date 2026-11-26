@@ -109,6 +109,138 @@ With PostgreSQL running and DB_PASSWORD configured:
     cd backend
     ./mvnw clean test
 
+## Development profiles
+
+AEGIS supports two explicit Spring Boot profiles.
+
+| Profile | Purpose | Authentication default |
+|---|---|---|
+| `dev` | Local development | `local` |
+| `test` | Integration tests | `database` |
+
+To start the backend with the development profile:
+
+```bash
+cd backend
+SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+```
+
+The test profile can be activated with:
+
+```bash
+SPRING_PROFILES_ACTIVE=test ./mvnw clean verify
+```
+
+**Important:** the `test` profile does not create
+an isolated database. Before using it, configure
+`DB_URL`, `DB_USERNAME` and `DB_PASSWORD` for a
+dedicated test database.
+
+The normal Maven test suite also contains tests
+with explicitly selected security modes. Running
+the suite against an existing development database
+does not provide full test isolation.
+
+## Database configuration
+
+The local Docker Compose project uses PostgreSQL 17.
+
+Default development connection:
+
+- Host: `127.0.0.1`
+- Port: `5434`
+- Database: `aegis`
+- User: `aegis`
+
+The database password must be provided externally.
+Never commit `.env` or actual credentials.
+
+Only source a local `.env` file that you have
+reviewed and trust.
+
+Flyway manages database migrations. Hibernate
+uses `ddl-auto=validate` and must not generate
+the database schema automatically.
+
+Do not delete existing Docker volumes while
+troubleshooting.
+
+## Troubleshooting
+
+### PostgreSQL unavailable
+
+Check the container status:
+
+```bash
+docker compose ps
+```
+
+Check whether the PostgreSQL service is healthy
+and whether port 5434 is available.
+
+### Authentication or database connection failure
+
+Verify that:
+
+- `POSTGRES_PASSWORD` is configured locally.
+- `DB_PASSWORD` matches the database password.
+- `DB_URL` points to the intended database.
+- `AEGIS_SECURITY_MODE` uses `local` or `database`.
+
+Changing `POSTGRES_PASSWORD` in an environment file
+does not automatically change the password stored
+in an existing PostgreSQL data volume.
+
+### Flyway validation failure
+
+Review the existing database schema and migration
+history. Do not rewrite migrations that have already
+been applied or delete volumes to bypass errors.
+
+### Maven or Java failure
+
+Confirm that Java 21 is active:
+
+```bash
+java -version
+```
+
+Run the Maven Wrapper from the backend directory:
+
+```bash
+cd backend
+./mvnw --batch-mode clean verify
+```
+
+### API access
+
+The development server listens on:
+
+`http://127.0.0.1:8081`
+
+Endpoints are protected by Spring Security.
+A response of HTTP 401 or 403 can indicate
+authentication or authorization restrictions.
+
+## Verification and limitations
+
+- Java 21 is the supported development baseline.
+- PostgreSQL 17 and Flyway migrations V1-V10
+  have been exercised in an isolated environment.
+- The backend test suite reached 318 passing tests
+  in the recorded local verification.
+- GitHub Actions runs backend tests automatically.
+- OSV-Scanner checks known dependency vulnerabilities.
+- The project is not production-ready.
+- A fresh-environment HTTP smoke test remains part
+  of the separate AEGIS-038 acceptance review.
+
+Further evidence:
+
+- [Spring profiles](docs/infrastructure/spring-profiles.md)
+- [Reproducibility](docs/infrastructure/reproducibility.md)
+- [Dependency security](docs/infrastructure/dependency-security.md)
+
 ## Architecture
 
 The project follows a modular monolith approach.
