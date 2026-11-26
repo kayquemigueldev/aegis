@@ -115,3 +115,20 @@ Remaining:
 
 Do not classify an inaccessible alerts page
 as evidence that no vulnerabilities exist.
+
+## GitHub security settings verification
+
+Date: 2026-11-26.
+
+Verified in repository settings:
+- Dependency graph: enabled.
+- Dependabot alerts: enabled.
+- Dependabot alerts: 0 open at inspection.
+- Code scanning: 0 open alerts at inspection.
+- OSV-Scanner: successful on main and PR #44.
+
+Dependabot security updates should be verified
+separately after enabling the setting.
+
+No open alerts at inspection does not guarantee
+the absence of vulnerabilities.
