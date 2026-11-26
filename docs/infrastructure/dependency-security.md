@@ -78,3 +78,13 @@ Limitations:
 - Future scan findings must be triaged.
 
 AEGIS-035 remains pending final acceptance.
+
+
+## Pull request validation
+
+This documentation-only pull request verifies
+that dependency security automation executes
+on pull requests targeting main.
+
+No application dependencies or runtime
+configuration are modified.
