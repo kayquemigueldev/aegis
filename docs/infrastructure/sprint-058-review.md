@@ -8,19 +8,19 @@ It does not automatically mean CONCLUIDO.
 
 | ID | Evidence status | Basis |
 |---|---|---|
-| AEGIS-025 | VALIDADO | GitHub repository |
-| AEGIS-026 | VALIDADO | Maven clean verify |
-| AEGIS-027 | VALIDADO | Spring Boot integration tests |
-| AEGIS-028 | PARCIAL | Package structure; architecture review pending |
-| AEGIS-029 | VALIDADO | PostgreSQL 17.11 integration |
-| AEGIS-030 | VALIDADO | Flyway V1-V10 from empty database |
-| AEGIS-031 | VALIDADO | Isolated Docker Compose project |
-| AEGIS-032 | PARCIAL | Environment example; complete coverage review pending |
-| AEGIS-033 | PENDENTE | Development and test profiles not yet verified |
-| AEGIS-034 | VALIDADO | GitHub Actions run 45332254042 |
-| AEGIS-035 | PARCIAL | Dependabot configured; vulnerability analysis pending |
-| AEGIS-036 | VALIDADO | README, isolated setup, 318 tests, HTTP 401/200 |
-| AEGIS-037 | VALIDADO | Changelog and release workflow documented |
+| AEGIS-025 | VALIDADO | Repository and origin verified |
+| AEGIS-026 | VALIDADO | POM, Maven Wrapper and clean verify |
+| AEGIS-027 | VALIDADO | Java 21 backend and HTTP startup |
+| AEGIS-028 | VALIDADO | Package structure and architecture audit |
+| AEGIS-029 | VALIDADO | PostgreSQL 17 isolated integration |
+| AEGIS-030 | VALIDADO | Migrations V1-V10 applied from scratch |
+| AEGIS-031 | VALIDADO | Compose configuration and isolated database |
+| AEGIS-032 | VALIDADO | Versioned environment template and README |
+| AEGIS-033 | VALIDADO | Profile configurations and integration tests |
+| AEGIS-034 | VALIDADO | Backend CI on main and pull requests |
+| AEGIS-035 | VALIDADO | Dependabot, OSV and security acceptance |
+| AEGIS-036 | VALIDADO | README, isolated tests and HTTP 401/200 |
+| AEGIS-037 | VALIDADO | Changelog and release policy |
 | AEGIS-038 | PARCIAL | Isolated test passed; full acceptance pending |
 
 ## CI evidence
@@ -79,3 +79,27 @@ Date: 2026-11-26.
 
 Assessment: VALIDADO.
 Backlog acceptance: CONCLUIDO.
+
+## Sprint 058 — Consolidated technical acceptance
+
+Date: 2026-11-26.
+
+AEGIS-025 to 034: VALIDADO, subject to formal
+GitHub issue acceptance.
+
+AEGIS-035 to 037: closed as completed.
+
+AEGIS-038: PARCIAL.
+Full clean-environment reproduction remains pending.
+
+Verified evidence includes:
+- 318 passing Java tests.
+- PostgreSQL 17 and Flyway V1-V10.
+- HTTP 401 and authenticated HTTP 200.
+- Backend CI and OSV-Scanner success.
+- Architecture baseline with zero import violations.
+
+Remaining limitations:
+- Three architecture observations remain.
+- Test profile does not isolate database automatically.
+- A cold Maven-cache reproduction is not yet verified.

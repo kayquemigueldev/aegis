@@ -226,3 +226,40 @@ Limitations:
 - No version tag is created by this acceptance.
 
 Formal GitHub issue closure pending.
+
+## Sprint 058 — Infrastructure final acceptance register
+
+Date: 2026-11-26.
+
+| ID | Scope | Estado |
+|---|---|---|
+| AEGIS-025 | Repositório GitHub | CONCLUIDO |
+| AEGIS-026 | Projeto Maven | CONCLUIDO |
+| AEGIS-027 | Backend Spring Boot | CONCLUIDO |
+| AEGIS-028 | Diretórios e módulos | CONCLUIDO |
+| AEGIS-029 | PostgreSQL | CONCLUIDO |
+| AEGIS-030 | Flyway | CONCLUIDO |
+| AEGIS-031 | Docker Compose | CONCLUIDO |
+| AEGIS-032 | Variáveis de exemplo | CONCLUIDO |
+| AEGIS-033 | Perfis dev/test | CONCLUIDO |
+| AEGIS-034 | GitHub Actions | CONCLUIDO |
+
+Shared verification:
+- Local Maven clean verify: 318 tests, zero failures.
+- Isolated PostgreSQL 17 and Flyway V1-V10 validated.
+- Spring Boot startup and protected HTTP API tested.
+- Architecture audit: 53 Java files, zero import violations.
+- Architecture review retains three observations.
+- GitHub Backend CI successful on `13a2df5`.
+- GitHub OSV-Scanner successful on `13a2df5`.
+
+Scope limitations:
+- AEGIS-028 accepts the existing directory structure,
+  not a fully separated or final architecture.
+- AEGIS-032 provides example environment settings;
+  credentials must be supplied externally.
+- AEGIS-033 profiles do not isolate database state.
+- AEGIS-038 remains PARCIAL; clean-cache and
+  cross-machine reproducibility are not yet proven.
+
+Issue closure requires formal GitHub acceptance.

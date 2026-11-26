@@ -1,7 +1,7 @@
 # AEGIS — Spring Boot Profiles
 
 Roadmap: AEGIS-033.
-Status: implementation pending full acceptance.
+Status: technical acceptance validated.
 
 ## Profiles
 
@@ -49,11 +49,16 @@ Always point DB_URL to the intended test database.
 
 ProfileConfigurationTest verifies baseline properties.
 
-Pending acceptance:
-- Run profile-specific Spring context smoke tests.
-- Verify integration tests under the test profile.
-- Review CI activation strategy.
-- Confirm compatibility and document evidence.
+Verified:
+- DevProfileIntegrationTest activates the dev profile.
+- TestProfileIntegrationTest activates the test profile.
+- Local Maven clean verify passed with 318 tests.
+- Backend CI passed with PostgreSQL 17.
+
+Limitations:
+- The test profile does not isolate the database itself.
+- Dedicated test database configuration remains required.
+- Profile defaults can be overridden by environment variables.
 
 ## Profile activation integration tests
 
