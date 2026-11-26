@@ -125,7 +125,7 @@ Review: `docs/infrastructure/sprint-058-review.md`.
 
 ## AEGIS-035 — Security pipeline validation
 
-Estado: PARCIAL (alert review pending).
+Estado: CONCLUIDO.
 
 Evidence:
 - `docs/infrastructure/dependency-security.md`
@@ -134,7 +134,11 @@ Evidence:
 - Backend CI successful on PR and main
 - First full scan: no issues found
 
-Pending:
-- GitHub Dependabot alert review
-- GitHub Code Scanning alert review
-- Formal issue acceptance
+Acceptance:
+- Dependabot alerts reviewed: zero open.
+- Code scanning reviewed: zero open.
+- Security updates enabled (owner-confirmed).
+- PR #44 and main security checks passed.
+- Technical acceptance recorded on 2026-11-26.
+
+Ongoing: monitor and triage future security findings.

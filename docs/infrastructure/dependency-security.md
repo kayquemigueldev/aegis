@@ -1,7 +1,7 @@
 # AEGIS — Dependency Security
 
 Roadmap: AEGIS-035.
-Status: CI validated; security alert review pending.
+Status: CONCLUIDO — technical acceptance recorded.
 
 Dependabot monitors Maven and GitHub Actions
 dependencies weekly.
@@ -46,8 +46,8 @@ The full scan uses fail-on-vuln=true.
 - [x] GitHub Actions recognizes both workflows.
 - [x] First full scan completes.
 - [x] First scan results reviewed; no issues found.
-- [ ] Alerts are triaged and documented.
-- [ ] False positives are justified if present.
+- [x] Current alert status reviewed and documented.
+- [x] No false positives reported in reviewed scan; future findings require justification.
 
 Scanner findings must not be silently ignored.
 Do not disable security checks merely to
@@ -132,3 +132,34 @@ separately after enabling the setting.
 
 No open alerts at inspection does not guarantee
 the absence of vulnerabilities.
+
+## AEGIS-035 — Final technical acceptance
+
+Date: 2026-11-26.
+Issue: https://github.com/kayquemigueldev/aegis/issues/35
+
+Acceptance evidence:
+- Dependency graph enabled.
+- Dependabot alerts enabled.
+- Dependabot security updates enabled
+  (confirmed by repository owner).
+- Dependabot alerts: zero open at inspection.
+- Code scanning: zero open at inspection.
+- OSV-Scanner validated on main and PR #44.
+- PR #44 merged successfully.
+- Latest verified commit: `7ec7eac`.
+- Backend CI run `45746688574`: success.
+- OSV run `45746688610`: success.
+- Maven suite: 318 tests passed locally.
+
+Outcome: CONCLUIDO.
+
+Remaining operational responsibilities:
+- Review new security alerts as they arrive.
+- Investigate any failed security scans.
+- Validate security update pull requests.
+- Reassess dependencies after updates.
+
+This acceptance establishes that vulnerability
+scanning is configured and verified. It does
+not certify that all dependencies are secure.
