@@ -145,7 +145,7 @@ Ongoing: monitor and triage future security findings.
 
 ## AEGIS-036 — README installation review
 
-Estado: PARCIAL.
+Estado: CONCLUIDO.
 
 Evidence:
 - README installation and execution guide
@@ -154,19 +154,23 @@ Evidence:
 - Database configuration and troubleshooting
 - Local Markdown link validation
 
-Pending:
-- Verify all instructions in a fresh environment
-- Confirm startup and authenticated API access
-- Record final acceptance evidence
+Acceptance:
+- Isolated clone and PostgreSQL setup validated.
+- Flyway and 318 tests completed successfully.
+- Backend startup and HTTP 401 verified.
+- Authenticated HTTP 200 verified.
+- Final README guidance reviewed.
+- CI and OSV-Scanner passed on `f35d4f4`.
 
-The issue remains open until validation completes.
+Technical acceptance: 2026-11-26.
+GitHub issue closure remains a separate action.
 
 ## AEGIS-036/038 — Isolated smoke test evidence
 
 Date: 2026-11-26.
 
-AEGIS-036: PARCIAL — isolated installation smoke test
-passed; final README acceptance review pending.
+AEGIS-036: CONCLUIDO — isolated installation and
+authenticated API smoke tests passed.
 
 AEGIS-038: PARCIAL — independent clone, PostgreSQL,
 318 tests and HTTP startup validated. Maven cache
@@ -184,7 +188,7 @@ No GitHub issues automatically closed.
 ## AEGIS-036 — Authentication acceptance evidence
 
 Date: 2026-11-26.
-Estado: PARCIAL — final acceptance review pending.
+Estado: CONCLUIDO — technical acceptance approved.
 
 Verified:
 - Isolated clone and PostgreSQL startup.
@@ -199,6 +203,8 @@ Evidence:
 - docs/infrastructure/reproducibility.md
 - Local logs: /tmp/aegis-auth-036.UakB1k
 
-Pending:
-- Review documentation changes and CI.
-- Record formal acceptance in GitHub issue #36.
+Acceptance:
+- README installation instructions reviewed.
+- Backend CI and OSV-Scanner passed on `f35d4f4`.
+- Technical acceptance documented in the backlog.
+- Formal GitHub issue closure to follow.

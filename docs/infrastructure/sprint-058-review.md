@@ -19,7 +19,7 @@ It does not automatically mean CONCLUIDO.
 | AEGIS-033 | PENDENTE | Development and test profiles not yet verified |
 | AEGIS-034 | VALIDADO | GitHub Actions run 45332254042 |
 | AEGIS-035 | PARCIAL | Dependabot configured; vulnerability analysis pending |
-| AEGIS-036 | PARCIAL | README exists; setup instructions need review |
+| AEGIS-036 | VALIDADO | README, isolated setup, 318 tests, HTTP 401/200 |
 | AEGIS-037 | PARCIAL | Changelog and versioning policy exist |
 | AEGIS-038 | PARCIAL | Isolated test passed; full acceptance pending |
 
@@ -47,3 +47,22 @@ Logging documentation remains separate.
 - Complete reproducibility limitations.
 
 No GitHub issues were automatically closed.
+
+## AEGIS-036 — Final validation
+
+Date: 2026-11-26.
+
+- README installation and execution instructions reviewed.
+- Independent clone and PostgreSQL environment verified.
+- Flyway migrations applied successfully.
+- Maven clean verify: 318 tests, zero failures.
+- Protected endpoint without credentials: HTTP 401.
+- Protected endpoint with valid credentials: HTTP 200.
+- Backend CI and OSV-Scanner passed on `f35d4f4`.
+
+Assessment: VALIDADO.
+Backlog acceptance: CONCLUIDO.
+
+AEGIS-038 remains PARCIAL because full
+second-machine and cold-cache reproducibility
+has not been verified.
