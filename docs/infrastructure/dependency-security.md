@@ -55,3 +55,26 @@ obtain a successful build.
 
 A successful scan does not establish that
 the application has no vulnerabilities.
+
+## First verified OSV-Scanner execution
+
+Date: 2026-11-25 (America/Sao_Paulo)
+Commit: `0e4f418`
+GitHub Actions run: `45744922335`
+
+Results:
+- Workflow completed successfully.
+- Scanner processed `backend/pom.xml`.
+- Initial scan reported 13 packages.
+- Scanner reporter: `No issues found`.
+- SARIF upload completed successfully.
+- Backend CI also completed successfully.
+
+Limitations:
+- Results reflect the dependencies and advisory
+  database available at scan time.
+- Pull request workflow still needs validation.
+- GitHub security settings require review.
+- Future scan findings must be triaged.
+
+AEGIS-035 remains pending final acceptance.
