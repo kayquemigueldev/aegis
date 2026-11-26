@@ -179,3 +179,26 @@ Evidence:
 - Original Docker services preserved
 
 No GitHub issues automatically closed.
+
+
+## AEGIS-036 — Authentication acceptance evidence
+
+Date: 2026-11-26.
+Estado: PARCIAL — final acceptance review pending.
+
+Verified:
+- Isolated clone and PostgreSQL startup.
+- Flyway migrations and 318 successful tests.
+- Backend startup on isolated HTTP port.
+- Unauthenticated request: HTTP 401.
+- Authenticated request: HTTP 200.
+- Original development services preserved.
+
+Evidence:
+- README.md
+- docs/infrastructure/reproducibility.md
+- Local logs: /tmp/aegis-auth-036.UakB1k
+
+Pending:
+- Review documentation changes and CI.
+- Record formal acceptance in GitHub issue #36.

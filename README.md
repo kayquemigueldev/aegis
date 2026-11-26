@@ -241,6 +241,24 @@ Further evidence:
 - [Reproducibility](docs/infrastructure/reproducibility.md)
 - [Dependency security](docs/infrastructure/dependency-security.md)
 
+## Verified authentication smoke test
+
+An isolated local authentication test was completed
+on 2026-11-26.
+
+- Source commit: `b5308c0`.
+- Separate PostgreSQL 17 container.
+- Backend on localhost port 18082.
+- Fresh randomly generated test credentials.
+- Unauthenticated API request: HTTP 401.
+- Authenticated API request: HTTP 200.
+- Temporary services stopped after the test.
+- Existing development containers untouched.
+
+This verifies local HTTP Basic authentication
+and an authorized API request. It does not
+establish production security readiness.
+
 ## Architecture
 
 The project follows a modular monolith approach.
