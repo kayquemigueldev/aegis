@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,7 +19,7 @@ class TestProfileIntegrationTest {
     @Test
     void testProfileStartsSuccessfully() {
         assertTrue(
-            environment.acceptsProfiles("test")
+            environment.acceptsProfiles(Profiles.of("test"))
         );
 
         assertEquals(
