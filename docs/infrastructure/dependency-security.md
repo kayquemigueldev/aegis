@@ -1,7 +1,7 @@
 # AEGIS — Dependency Security
 
 Roadmap: AEGIS-035.
-Status: scanner integration pending CI validation.
+Status: CI validated; security alert review pending.
 
 Dependabot monitors Maven and GitHub Actions
 dependencies weekly.
@@ -43,9 +43,9 @@ The full scan uses fail-on-vuln=true.
 
 - [x] Dependabot configuration committed.
 - [x] OSV-Scanner workflows prepared.
-- [ ] GitHub Actions recognizes both workflows.
-- [ ] First full scan completes.
-- [ ] Results and findings are reviewed.
+- [x] GitHub Actions recognizes both workflows.
+- [x] First full scan completes.
+- [x] First scan results reviewed; no issues found.
 - [ ] Alerts are triaged and documented.
 - [ ] False positives are justified if present.
 
@@ -88,3 +88,30 @@ on pull requests targeting main.
 
 No application dependencies or runtime
 configuration are modified.
+
+## Pull request and main validation
+
+PR: https://github.com/kayquemigueldev/aegis/pull/44
+PR commit: `dd7b3fc`
+Merge commit: `6dff78b`
+
+Verified workflow executions:
+
+- PR OSV: `45745783769` — success
+- PR Backend CI: `45745783519` — success
+- Main OSV: `45746022674` — success
+- Main Backend CI: `45746022401` — success
+
+The PR introduced documentation changes only.
+
+The first full scan previously reported
+`No issues found`.
+
+Remaining:
+- Review GitHub Dependabot alerts.
+- Review Code Scanning alerts and repository settings.
+- Record findings or confirm no open alerts.
+- Decide formal issue acceptance.
+
+Do not classify an inaccessible alerts page
+as evidence that no vulnerabilities exist.

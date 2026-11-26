@@ -122,3 +122,19 @@ Review: `docs/infrastructure/sprint-058-review.md`.
 - AEGIS-033 corrected to development/test profiles.
 - Remaining acceptance limitations documented.
 - No issues automatically closed.
+
+## AEGIS-035 — Security pipeline validation
+
+Estado: PARCIAL (alert review pending).
+
+Evidence:
+- `docs/infrastructure/dependency-security.md`
+- PR #44 merged as `6dff78b`
+- OSV scanner successful on PR and main
+- Backend CI successful on PR and main
+- First full scan: no issues found
+
+Pending:
+- GitHub Dependabot alert review
+- GitHub Code Scanning alert review
+- Formal issue acceptance
