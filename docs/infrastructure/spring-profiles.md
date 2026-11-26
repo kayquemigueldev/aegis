@@ -54,3 +54,19 @@ Pending acceptance:
 - Verify integration tests under the test profile.
 - Review CI activation strategy.
 - Confirm compatibility and document evidence.
+
+## Profile activation integration tests
+
+The following tests verify Spring context startup:
+
+- DevProfileIntegrationTest
+- TestProfileIntegrationTest
+
+They assert the active profile and selected
+configuration properties.
+
+Database integration uses externally supplied
+credentials. These tests do not independently
+provision an isolated database.
+
+The main test suite must also pass before acceptance.
