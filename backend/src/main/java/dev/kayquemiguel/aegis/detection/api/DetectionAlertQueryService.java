@@ -4,6 +4,8 @@ package dev.kayquemiguel.aegis.detection.api;
 import dev.kayquemiguel.aegis.detection.application.DetectionAlertView;
 import dev.kayquemiguel.aegis.detection.application.DetectionAlertReadPort;
 import dev.kayquemiguel.aegis.security.SensorAccessPolicy;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -82,8 +84,15 @@ public class DetectionAlertQueryService {
             }
 
         } else {
-            // Analistas sem sensor explicito visualizam
-            // apenas os sensores autorizados.
+            // Apenas analistas podem consultar os
+            // sensores associados às suas permissões.
+            if (!accessPolicy.isAnalyst(authentication)) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Alert access denied"
+                );
+            }
+
             Set<String> permitted =
                     accessPolicy.permittedSensors(
                             authentication

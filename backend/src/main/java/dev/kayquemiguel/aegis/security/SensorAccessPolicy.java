@@ -19,6 +19,10 @@ public class SensorAccessPolicy {
         return hasAuthority(authentication, "ROLE_ADMIN");
     }
 
+    public boolean isAnalyst(Authentication authentication) {
+        return hasAuthority(authentication, "ROLE_ANALYST");
+    }
+
     public Set<String> permittedSensors(
             Authentication authentication
     ) {
