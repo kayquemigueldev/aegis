@@ -30,3 +30,25 @@ Roadmap: AEGIS-006, AEGIS-007, AEGIS-008.
 Correção futura exige compatibilidade com dados já
 persistidos e testes de migração. Não renomear IDs
 existentes silenciosamente.
+
+## Sprint 059 — AEGIS-014
+
+Rastreabilidade arquitetural:
+
+| Requisitos | Roadmap | Evidência |
+|---|---|---|
+| RNF-009, RNF-011 | AEGIS-014 | `docs/architecture/sprint-059-aegis-014-review.md` |
+
+Componentes revisados:
+- `detection.application`
+- `detection.api`
+- `detection.persistence`
+- `DetectionAlertReadPort`
+- `JpaDetectionAlertReadAdapter`
+- `ArchitectureRulesTest`
+
+Validação: 324 testes aprovados localmente.
+Aceitação formal: pendente da revisão do PR e CI.
+
+As observações e limitações constam
+do relatório técnico da Sprint 059.

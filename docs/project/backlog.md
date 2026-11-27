@@ -263,3 +263,26 @@ Scope limitations:
   cross-machine reproducibility are not yet proven.
 
 Issue closure requires formal GitHub acceptance.
+
+## Sprint 059 — AEGIS-014
+
+Data: 2026-11-27.
+
+| ID | Estado | Evidência |
+|---|---|---|
+| AEGIS-014 | PARCIAL — aguardando CI e revisão formal | `docs/architecture/sprint-059-aegis-014-review.md` |
+
+Evidências:
+- Dez commits na branch `feature/aegis-014-architecture`.
+- 324 testes aprovados no PostgreSQL isolado.
+- Sete testes ArchUnit aprovados.
+- Auditoria de 57 arquivos Java, sem violações
+  das regras de importação configuradas.
+- Três observações arquiteturais preservadas.
+
+O histórico da Sprint 057 permanece como registro
+da avaliação anterior. A nova avaliação está
+documentada na revisão da Sprint 059.
+
+A confirmação do CI e a aceitação formal
+permanecem pendentes.
