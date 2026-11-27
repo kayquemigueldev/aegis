@@ -369,4 +369,20 @@ class DetectionAlertControllerTest {
                         .value(0));
     }
 
+
+    @Test
+    @WithMockUser(authorities = {
+            "ROLE_SENSOR",
+            "SENSOR:sensor-allowed"
+    })
+    void shouldNotExposeAlertsGloballyToSensorOnlyPrincipal()
+            throws Exception {
+        String sensorId = "sensor-allowed";
+
+        save(sensorId, "NET-001", 0);
+
+        mockMvc.perform(get("/api/v1/alerts"))
+                .andExpect(status().isForbidden());
+    }
+
 }
