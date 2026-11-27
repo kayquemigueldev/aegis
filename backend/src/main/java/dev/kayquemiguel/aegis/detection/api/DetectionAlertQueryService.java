@@ -2,6 +2,7 @@
 package dev.kayquemiguel.aegis.detection.api;
 
 import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertEntity;
+import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertViewMapper;
 import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertRepository;
 import dev.kayquemiguel.aegis.security.SensorAccessPolicy;
 import org.springframework.data.domain.Page;
@@ -107,7 +108,8 @@ public class DetectionAlertQueryService {
         }
 
         Page<DetectionAlertResponse> responses =
-                result.map(
+                result.map(DetectionAlertViewMapper::from)
+                        .map(
                         DetectionAlertResponse::from
                 );
 
@@ -128,6 +130,7 @@ public class DetectionAlertQueryService {
                                 entity.getSensorId()
                         )
                 )
+                .map(DetectionAlertViewMapper::from)
                 .map(DetectionAlertResponse::from);
     }
 }

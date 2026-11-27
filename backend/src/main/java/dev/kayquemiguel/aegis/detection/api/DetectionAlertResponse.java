@@ -1,7 +1,7 @@
 
 package dev.kayquemiguel.aegis.detection.api;
 
-import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertEntity;
+import dev.kayquemiguel.aegis.detection.application.DetectionAlertView;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -23,23 +23,23 @@ public record DetectionAlertResponse(
         String authSourceSystem
 ) {
     public static DetectionAlertResponse from(
-            DetectionAlertEntity entity
+            DetectionAlertView entity
     ) {
         return new DetectionAlertResponse(
-                entity.getId(),
-                entity.getRuleId(),
-                entity.getSensorId(),
-                entity.getSourceIp(),
-                entity.getDestinationIp(),
-                entity.getDetectedAt(),
-                entity.getDistinctPorts(),
-                entity.getDetectionThreshold(),
-                entity.getDescription(),
-                entity.getCreatedAt(),
-                entity.getMetricType(),
-                entity.getObservedCount(),
-                entity.getAuthUsername(),
-                entity.getAuthSourceSystem()
+                entity.id(),
+                entity.ruleId(),
+                entity.sensorId(),
+                entity.sourceIp(),
+                entity.destinationIp(),
+                entity.detectedAt(),
+                entity.distinctPorts(),
+                entity.threshold(),
+                entity.description(),
+                entity.createdAt(),
+                entity.metricType(),
+                entity.observedCount(),
+                entity.authUsername(),
+                entity.authSourceSystem()
         );
     }
 }
