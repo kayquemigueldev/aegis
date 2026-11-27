@@ -103,4 +103,18 @@ class ArchitectureRulesTest {
                 .check(classes);
     }
 
+
+    @Test
+    void alertQueryApiMustNotDependOnPersistence() {
+        noClasses()
+                .that()
+                .haveSimpleName("DetectionAlertQueryService")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "..detection.persistence.."
+                )
+                .check(classes);
+    }
+
 }
