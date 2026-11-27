@@ -1,8 +1,6 @@
 
-package dev.kayquemiguel.aegis.detection.api;
+package dev.kayquemiguel.aegis.detection.application;
 
-import dev.kayquemiguel.aegis.detection.application.DetectionAlertView;
-import dev.kayquemiguel.aegis.detection.application.DetectionAlertReadPort;
 import dev.kayquemiguel.aegis.security.SensorAccessPolicy;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -33,7 +31,7 @@ public class DetectionAlertQueryService {
     }
 
     @Transactional(readOnly = true)
-    public DetectionAlertPageResponse search(
+    public Page<DetectionAlertView> search(
             String sensorId,
             String ruleId,
             int page,
@@ -115,16 +113,11 @@ public class DetectionAlertQueryService {
             }
         }
 
-        Page<DetectionAlertResponse> responses =
-                result.map(DetectionAlertResponse::from);
-
-        return DetectionAlertPageResponse.from(
-                responses
-        );
+        return result;
     }
 
     @Transactional(readOnly = true)
-    public Optional<DetectionAlertResponse> findById(
+    public Optional<DetectionAlertView> findById(
             UUID id,
             Authentication authentication
     ) {
@@ -134,7 +127,6 @@ public class DetectionAlertQueryService {
                                 authentication,
                                 entity.sensorId()
                         )
-                )
-                .map(DetectionAlertResponse::from);
+                );
     }
 }

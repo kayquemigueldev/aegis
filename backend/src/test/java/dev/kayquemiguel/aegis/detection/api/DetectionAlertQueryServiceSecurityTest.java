@@ -1,5 +1,7 @@
 package dev.kayquemiguel.aegis.detection.api;
 
+import dev.kayquemiguel.aegis.detection.application.DetectionAlertQueryService;
+
 import dev.kayquemiguel.aegis.detection.application.DetectionAlertReadPort;
 import dev.kayquemiguel.aegis.security.SensorAccessPolicy;
 import org.junit.jupiter.api.Test;
