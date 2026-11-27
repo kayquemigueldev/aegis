@@ -2,6 +2,7 @@ package dev.kayquemiguel.aegis.architecture;
 
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
+import com.tngtech.archunit.core.importer.ImportOption;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +15,9 @@ class ArchitectureRulesTest {
     @BeforeAll
     static void loadClasses() {
         classes = new ClassFileImporter()
+                .withImportOption(
+                        ImportOption.Predefined.DO_NOT_INCLUDE_TESTS
+                )
                 .importPackages("dev.kayquemiguel.aegis");
     }
 
@@ -71,6 +75,30 @@ class ArchitectureRulesTest {
                         "..detection.pipeline..",
                         "..security..",
                         "..ingestion.."
+                )
+                .check(classes);
+    }
+
+
+    @Test
+    void detectionCoreMustRemainIndependentOfInfrastructure() {
+        noClasses()
+                .that()
+                .resideInAPackage(
+                        "dev.kayquemiguel.aegis.detection"
+                )
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "org.springframework..",
+                        "jakarta.persistence..",
+                        "..detection.api..",
+                        "..detection.persistence..",
+                        "..detection.pipeline..",
+                        "..detection.config..",
+                        "..ingestion..",
+                        "..security..",
+                        "..observability.."
                 )
                 .check(classes);
     }
