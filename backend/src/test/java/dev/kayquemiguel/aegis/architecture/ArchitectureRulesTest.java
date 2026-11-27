@@ -105,10 +105,24 @@ class ArchitectureRulesTest {
 
 
     @Test
-    void alertQueryApiMustNotDependOnPersistence() {
+    void detectionApplicationMustNotDependOnAdapters() {
         noClasses()
                 .that()
-                .haveSimpleName("DetectionAlertQueryService")
+                .resideInAPackage("..detection.application..")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "..detection.api..",
+                        "..detection.persistence.."
+                )
+                .check(classes);
+    }
+
+    @Test
+    void detectionAlertControllerMustNotDependOnPersistence() {
+        noClasses()
+                .that()
+                .haveSimpleName("DetectionAlertController")
                 .should()
                 .dependOnClassesThat()
                 .resideInAnyPackage(
