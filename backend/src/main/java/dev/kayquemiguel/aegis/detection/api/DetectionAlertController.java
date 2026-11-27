@@ -1,6 +1,8 @@
 
 package dev.kayquemiguel.aegis.detection.api;
 
+import dev.kayquemiguel.aegis.detection.application.DetectionAlertQueryService;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -54,12 +56,14 @@ public class DetectionAlertController {
                 "ruleId"
         );
 
-        return queryService.search(
-                validatedSensor,
-                validatedRule,
-                page,
-                size,
-                authentication
+        return DetectionAlertPageResponse.from(
+                queryService.search(
+                        validatedSensor,
+                        validatedRule,
+                        page,
+                        size,
+                        authentication
+                ).map(DetectionAlertResponse::from)
         );
     }
 
@@ -72,6 +76,7 @@ public class DetectionAlertController {
                         id,
                         authentication
                 )
+                .map(DetectionAlertResponse::from)
                 .orElseThrow(() ->
                         new ResponseStatusException(
                                 HttpStatus.NOT_FOUND,

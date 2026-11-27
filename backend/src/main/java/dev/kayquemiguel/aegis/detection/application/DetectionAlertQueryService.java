@@ -1,9 +1,9 @@
 
-package dev.kayquemiguel.aegis.detection.api;
+package dev.kayquemiguel.aegis.detection.application;
 
-import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertEntity;
-import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertRepository;
 import dev.kayquemiguel.aegis.security.SensorAccessPolicy;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -19,11 +19,11 @@ import java.util.UUID;
 @Service
 public class DetectionAlertQueryService {
 
-    private final DetectionAlertRepository repository;
+    private final DetectionAlertReadPort repository;
     private final SensorAccessPolicy accessPolicy;
 
     public DetectionAlertQueryService(
-            DetectionAlertRepository repository,
+            DetectionAlertReadPort repository,
             SensorAccessPolicy accessPolicy
     ) {
         this.repository = repository;
@@ -31,7 +31,7 @@ public class DetectionAlertQueryService {
     }
 
     @Transactional(readOnly = true)
-    public DetectionAlertPageResponse search(
+    public Page<DetectionAlertView> search(
             String sensorId,
             String ruleId,
             int page,
@@ -47,7 +47,7 @@ public class DetectionAlertQueryService {
                 )
         );
 
-        Page<DetectionAlertEntity> result;
+        Page<DetectionAlertView> result;
 
         if (sensorId != null) {
             // Nao basta confiar no filtro fornecido
@@ -82,8 +82,15 @@ public class DetectionAlertQueryService {
             }
 
         } else {
-            // Analistas sem sensor explicito visualizam
-            // apenas os sensores autorizados.
+            // Apenas analistas podem consultar os
+            // sensores associados às suas permissões.
+            if (!accessPolicy.isAnalyst(authentication)) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Alert access denied"
+                );
+            }
+
             Set<String> permitted =
                     accessPolicy.permittedSensors(
                             authentication
@@ -106,18 +113,11 @@ public class DetectionAlertQueryService {
             }
         }
 
-        Page<DetectionAlertResponse> responses =
-                result.map(
-                        DetectionAlertResponse::from
-                );
-
-        return DetectionAlertPageResponse.from(
-                responses
-        );
+        return result;
     }
 
     @Transactional(readOnly = true)
-    public Optional<DetectionAlertResponse> findById(
+    public Optional<DetectionAlertView> findById(
             UUID id,
             Authentication authentication
     ) {
@@ -125,9 +125,8 @@ public class DetectionAlertQueryService {
                 .filter(entity ->
                         accessPolicy.canRead(
                                 authentication,
-                                entity.getSensorId()
+                                entity.sensorId()
                         )
-                )
-                .map(DetectionAlertResponse::from);
+                );
     }
 }
