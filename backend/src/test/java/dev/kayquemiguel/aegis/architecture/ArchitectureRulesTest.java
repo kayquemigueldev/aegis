@@ -55,4 +55,24 @@ class ArchitectureRulesTest {
                 .resideInAPackage("..detection.persistence..")
                 .check(classes);
     }
+
+    @Test
+    void detectionEngineMustNotDependOnInfrastructure() {
+        noClasses()
+                .that()
+                .haveSimpleName("DetectionEngine")
+                .should()
+                .dependOnClassesThat()
+                .resideInAnyPackage(
+                        "org.springframework..",
+                        "jakarta.persistence..",
+                        "..detection.api..",
+                        "..detection.persistence..",
+                        "..detection.pipeline..",
+                        "..security..",
+                        "..ingestion.."
+                )
+                .check(classes);
+    }
+
 }
