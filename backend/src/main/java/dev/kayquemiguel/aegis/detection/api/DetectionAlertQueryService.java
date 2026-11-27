@@ -1,9 +1,8 @@
 
 package dev.kayquemiguel.aegis.detection.api;
 
-import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertEntity;
-import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertViewMapper;
-import dev.kayquemiguel.aegis.detection.persistence.DetectionAlertRepository;
+import dev.kayquemiguel.aegis.detection.application.DetectionAlertView;
+import dev.kayquemiguel.aegis.detection.application.DetectionAlertReadPort;
 import dev.kayquemiguel.aegis.security.SensorAccessPolicy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,11 +19,11 @@ import java.util.UUID;
 @Service
 public class DetectionAlertQueryService {
 
-    private final DetectionAlertRepository repository;
+    private final DetectionAlertReadPort repository;
     private final SensorAccessPolicy accessPolicy;
 
     public DetectionAlertQueryService(
-            DetectionAlertRepository repository,
+            DetectionAlertReadPort repository,
             SensorAccessPolicy accessPolicy
     ) {
         this.repository = repository;
@@ -48,7 +47,7 @@ public class DetectionAlertQueryService {
                 )
         );
 
-        Page<DetectionAlertEntity> result;
+        Page<DetectionAlertView> result;
 
         if (sensorId != null) {
             // Nao basta confiar no filtro fornecido
@@ -108,10 +107,7 @@ public class DetectionAlertQueryService {
         }
 
         Page<DetectionAlertResponse> responses =
-                result.map(DetectionAlertViewMapper::from)
-                        .map(
-                        DetectionAlertResponse::from
-                );
+                result.map(DetectionAlertResponse::from);
 
         return DetectionAlertPageResponse.from(
                 responses
@@ -127,10 +123,9 @@ public class DetectionAlertQueryService {
                 .filter(entity ->
                         accessPolicy.canRead(
                                 authentication,
-                                entity.getSensorId()
+                                entity.sensorId()
                         )
                 )
-                .map(DetectionAlertViewMapper::from)
                 .map(DetectionAlertResponse::from);
     }
 }
